@@ -1,0 +1,72 @@
+/* src/index.css */
+@import "@fontsource/vazirmatn";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* فونت و فضای پایه */
+:root {
+  font-family: Vazirmatn, ui-sans-serif, system-ui;
+  direction: rtl;
+  text-align: right;
+}
+
+
+/* ساختار کلی صفحه */
+body {
+  font-feature-settings: "ss01" 1;
+  font-variant-numeric: slashed-zero;
+  unicode-bidi: plaintext;
+  font-family: Vazirmatn, sans-serif;
+  font-variant-numeric: proportional-nums;
+  @apply bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 dark:from-gray-950 dark:to-black dark:text-gray-100 transition-colors duration-700;
+}
+
+/* کانتینر اصلی */
+.container {
+  @apply max-w-6xl mx-auto px-4;
+}
+
+/* کارت‌ها */
+.card {
+  @apply bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-800 transition-all duration-500;
+}
+
+/* دکمه‌ها */
+.btn {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300 active:scale-95;
+}
+
+.btn-primary {
+  @apply bg-brand text-white hover:bg-brand-dark dark:bg-indigo-600 dark:hover:bg-indigo-500;
+}
+
+/* انیمیشن برای حالت‌های hover */
+.card:hover {
+  @apply shadow-2xl -translate-y-1;
+}
+
+/* لینک‌ها */
+a {
+  @apply transition-colors duration-300;
+}
+
+/* نوار زمان Toast (۷ ثانیه) */
+@keyframes toastShrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.toast-bar {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.75);
+  animation: toastShrink 7s linear forwards;
+}
+
+/* تمام اعداد داخل صفحه فارسی نمایش داده شوند */
+* {
+  font-family: Vazirmatn, sans-serif;
+  font-variant-numeric: proportional-nums;
+  font-feature-settings: "ss01";
+  unicode-bidi: plaintext;
+}

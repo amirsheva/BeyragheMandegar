@@ -1,0 +1,11 @@
+/* style.css */
+body {
+  font-family: "Vazir", sans-serif;
+}
+.adminjs_Application {
+  background-color: #121212; /* رنگ پس‌زمینه */
+}
+.adminjs_Main {
+  color: #e0e0e0; /* متن رنگ روشن */
+}
+/* و بقیه کلاس‌ها */
