@@ -1,12 +1,12 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  root: ".",
+  root: "admin",
+  base: "/admin/",
   build: {
-    outDir: "dist-admin",
-    emptyOutDir: true
-  }
+    outDir: "../dist-admin",
+    emptyOutDir: true,
+  },
 });
