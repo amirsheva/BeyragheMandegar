@@ -227,13 +227,22 @@ async function startServer() {
 
   const adminDist = path.join(process.cwd(), "dist-admin");
 
-  app.get("/admin", (req, res) => {
-    res.redirect("/admin/");
+  // Exact route only. Express normally treats /admin and /admin/ as the
+  // same route, which caused an infinite redirect loop before.
+  app.get(/^\/admin$/, (req, res) => {
+    res.redirect(308, "/admin/");
   });
 
-  app.use("/admin", express.static(adminDist));
+  app.use(
+    "/admin/",
+    express.static(adminDist, {
+      index: "index.html",
+      redirect: false,
+    })
+  );
 
-  app.get("/admin/*", (req, res) => {
+  // SPA fallback for internal admin routes such as /admin/shows.
+  app.get(/^\/admin\/.*$/, (req, res) => {
     res.sendFile(path.join(adminDist, "index.html"));
   });
 
