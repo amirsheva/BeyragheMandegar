@@ -1,20 +1,65 @@
 import { useEffect, useMemo, useState } from "react";
 
+async function readJson(res) {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || "خطا در ارتباط با سرور");
+  }
+  return data;
+}
+
 export default function ReservationManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState("");
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await readJson(await fetch("/api/admin/reservations"));
+      setItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/admin/reservations")
-      .then((res) => res.json())
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
+    load();
   }, []);
 
-  const ticketCount = useMemo(
-    () => items.reduce((sum, item) => sum + Number(item.count || 0), 0),
+  const activeItems = useMemo(
+    () => items.filter((item) => item.status === "confirmed"),
     [items]
   );
+
+  const ticketCount = useMemo(
+    () => activeItems.reduce((sum, item) => sum + Number(item.count || 0), 0),
+    [activeItems]
+  );
+
+  async function changeStatus(item, status) {
+    setBusyId(item.id);
+    setError("");
+
+    try {
+      await readJson(
+        await fetch(`/api/admin/reservations/${item.id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        })
+      );
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div dir="rtl">
@@ -23,9 +68,16 @@ export default function ReservationManager() {
         <p className="text-white/50 mt-2">رزروهای ثبت‌شده برای اجراهای بیرق ماندگار</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-5 mb-8">
-        <Stat title="تعداد رزرو" value={items.length} />
-        <Stat title="تعداد بلیت" value={ticketCount} />
+      {error && (
+        <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200">
+          {error}
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-3 gap-5 mb-8">
+        <Stat title="کل رزروها" value={items.length} />
+        <Stat title="رزرو فعال" value={activeItems.length} />
+        <Stat title="بلیت فعال" value={ticketCount} />
       </div>
 
       <div className="bg-[#171717] border border-white/10 rounded-2xl overflow-hidden">
@@ -35,7 +87,7 @@ export default function ReservationManager() {
           <div className="p-6 text-white/50">هنوز رزروی ثبت نشده است.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right min-w-[900px]">
+            <table className="w-full text-right min-w-[1100px]">
               <thead className="border-b border-white/10 text-white/50">
                 <tr>
                   <th className="p-4">نام</th>
@@ -46,6 +98,7 @@ export default function ReservationManager() {
                   <th className="p-4">بلیت</th>
                   <th className="p-4">کد پیگیری</th>
                   <th className="p-4">وضعیت</th>
+                  <th className="p-4">عملیات</th>
                 </tr>
               </thead>
 
@@ -53,7 +106,9 @@ export default function ReservationManager() {
                 {items.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-white/5 last:border-0"
+                    className={`border-b border-white/5 last:border-0 ${
+                      item.status === "cancelled" ? "opacity-55" : ""
+                    }`}
                   >
                     <td className="p-4">{item.name}</td>
                     <td className="p-4 text-white/70">{item.phone}</td>
@@ -73,7 +128,36 @@ export default function ReservationManager() {
                       {item.tracking_code}
                     </td>
                     <td className="p-4">
-                      {item.status === "confirmed" ? "تأیید شده" : item.status}
+                      <span
+                        className={`text-xs px-3 py-1.5 rounded-full border ${
+                          item.status === "confirmed"
+                            ? "text-emerald-300 border-emerald-500/20 bg-emerald-500/10"
+                            : "text-red-300 border-red-500/20 bg-red-500/10"
+                        }`}
+                      >
+                        {item.status === "confirmed" ? "تأیید شده" : "لغو شده"}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {item.status === "confirmed" ? (
+                        <button
+                          type="button"
+                          disabled={busyId === item.id}
+                          onClick={() => changeStatus(item, "cancelled")}
+                          className="border border-red-500/20 rounded-lg px-3 py-2 text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-40"
+                        >
+                          لغو رزرو
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busyId === item.id}
+                          onClick={() => changeStatus(item, "confirmed")}
+                          className="border border-emerald-500/20 rounded-lg px-3 py-2 text-sm text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40"
+                        >
+                          فعال‌سازی مجدد
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
