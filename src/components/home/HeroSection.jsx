@@ -1,177 +1,246 @@
-import Countdown from "../common/Countdown";
-import GoldButton from "../common/GoldButton";
+﻿import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Link,
+} from "react-router-dom";
+
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock3,
+  Ticket,
+} from "lucide-react";
+
 import heroImage from "../../assets/images/hero-beyragh-fatemeh-azra.webp";
 
+import {
+  toFaDigits,
+} from "../../theme/persianDigits";
+
+
+function remainingOf(show) {
+  return Number(
+    show?.remainingCapacity ??
+    show?.remaining_capacity ??
+    show?.capacity ??
+    0
+  );
+}
+
+
+function isBookable(show) {
+  return (
+    show?.status === "active" &&
+    show?.bookingEnabled !== false &&
+    show?.booking_enabled !== false &&
+    remainingOf(show) > 0
+  );
+}
+
+
 export default function HeroSection() {
+  const [
+    shows,
+    setShows,
+  ] = useState([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+
+  useEffect(() => {
+    const controller =
+      new AbortController();
+
+    fetch(
+      "/api/shows",
+      {
+        signal:
+          controller.signal,
+      }
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setShows(
+          Array.isArray(data)
+            ? data
+            : []
+        );
+      })
+      .catch((error) => {
+        if (
+          error?.name !==
+          "AbortError"
+        ) {
+          setShows([]);
+        }
+      })
+      .finally(() => {
+        if (
+          !controller
+            .signal
+            .aborted
+        ) {
+          setLoading(false);
+        }
+      });
+
+    return () =>
+      controller.abort();
+  }, []);
+
+
+  const bookable =
+    useMemo(
+      () =>
+        shows
+          .filter(
+            isBookable
+          )
+          .sort(
+            (a, b) =>
+              `${a.date || ""} ${a.time || ""}`
+                .localeCompare(
+                  `${b.date || ""} ${b.time || ""}`
+                )
+          ),
+      [shows]
+    );
+
+
+  const next =
+    bookable[0] ||
+    null;
+
+
   return (
     <section
-      className="
-        relative
-        min-h-screen
-        overflow-hidden
-        bg-[#050505]
-        flex
-        items-center
-      "
+      className="home-hero"
+      dir="rtl"
     >
-
-      {/* Poster Image */}
-      <div
-        className="
-          absolute
-          inset-y-0
-          right-0
-          w-full
-          md:w-[72%]
-        "
-      >
+      <div className="home-hero__media">
         <img
           src={heroImage}
-          alt="بیرق ماندگار"
-          className="
-            w-full
-            h-full
-            object-cover
-            object-[45%_center]
-          "
+          alt="نمایش بیرق ماندگار"
         />
       </div>
 
+      <div className="home-hero__veil" />
+      <div className="home-hero__bottom-fade" />
 
-      {/* Main Gradient Overlay */}
-      <div
-        className="
-          absolute
-          inset-0
-          bg-gradient-to-r
-          from-black/60
-          via-black/20
-          to-transparent
-          z-10
-        "
-      />
+      <div className="home-container home-hero__inner">
+        <div className="home-hero__content">
 
-
-      {/* Bottom Fade */}
-      <div
-        className="
-          absolute
-          inset-x-0
-          bottom-0
-          h-48
-          bg-gradient-to-t
-          from-black
-          to-transparent
-          z-20
-        "
-      />
-
-
-      {/* Content */}
-      <div
-        className="
-          relative
-          z-30
-          w-full
-          max-w-7xl
-          mx-auto
-          px-16
-          py-40
-          flex
-          justify-end
-        "
-      >
-
-        <div
-          className="
-            max-w-xl
-            text-right
-            space-y-8
-          "
-        >
-
-          {/* Brand */}
-          <div
-            className="
-              flex
-              justify-end
-              items-center
-              gap-4
-              text-[#d4af37]
-            "
-          >
-            <span className="text-lg">
+          <div className="home-hero__brand">
+            <span>
               بیرق ماندگار
             </span>
 
-            <span
-              className="
-                h-px
-                w-12
-                bg-[#d4af37]
-              "
-            />
+            <span className="home-hero__brand-line" />
           </div>
 
-
-          {/* Title */}
-          <h1
-            className="
-              text-white
-              text-5xl
-              md:text-7xl
-              font-bold
-              leading-[1.4]
-            "
-          >
+          <h1>
             روایتی که
             <br />
             ماندگار می‌شود
           </h1>
 
-
-          {/* Description */}
-          <p
-            className="
-              text-white/70
-              text-lg
-              leading-10
-            "
-          >
-            تجربه‌ای متفاوت از هنر نمایش،
-            روایت و احساس در صحنه‌ای ماندگار
+          <p className="home-hero__lead">
+            تجربه‌ای از هنر نمایش، روایت و احساس؛
+            روی صحنه‌ای که قصه‌هایش با مخاطب ادامه پیدا می‌کند.
           </p>
 
 
-          {/* Countdown */}
-          <div
-            className="
-              inline-flex
-              backdrop-blur-xl
-              bg-black/40
-              border
-              border-white/10
-              rounded-3xl
-              px-8
-              py-5
-            "
-          >
-            <Countdown />
+          <div className="home-hero__availability">
+            {loading ? (
+              <div className="home-hero__availability-loading">
+                در حال بررسی اجراهای قابل رزرو...
+              </div>
+            ) : next ? (
+              <>
+                <div className="home-hero__availability-top">
+                  <Ticket size={18} />
+
+                  <strong>
+                    رزرو{" "}
+                    {toFaDigits(
+                      bookable.length
+                    )}{" "}
+                    شب فعال است
+                  </strong>
+                </div>
+
+                <div className="home-hero__next">
+                  <span>
+                    {next.label}
+                  </span>
+
+                  <span>
+                    <CalendarDays
+                      size={15}
+                    />
+
+                    {toFaDigits(
+                      next.date
+                    )}
+                  </span>
+
+                  <span>
+                    <Clock3
+                      size={15}
+                    />
+
+                    ساعت{" "}
+                    {toFaDigits(
+                      next.time
+                    )}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="home-hero__availability-loading">
+                در حال حاضر رزرو فعالی وجود ندارد.
+              </div>
+            )}
           </div>
 
 
-          {/* CTA */}
-          <div>
-            <GoldButton>
-              🎟 رزرو بلیت
-            </GoldButton>
-          </div>
+          <div className="home-hero__actions">
+            {next ? (
+              <Link
+                to="/booking"
+                className="home-button home-button--primary"
+              >
+                <Ticket size={19} />
 
+                رزرو بلیت
+
+                <ArrowLeft size={18} />
+              </Link>
+            ) : null}
+
+            <Link
+              to="/#archive"
+              className="home-button home-button--ghost"
+            >
+              مشاهده آرشیو اجراها
+            </Link>
+          </div>
 
         </div>
-
       </div>
-
     </section>
   );
 }

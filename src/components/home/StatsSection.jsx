@@ -1,4 +1,60 @@
+﻿const items = [
+  {
+    value:
+      "۵۰+",
+    title:
+      "اجرا",
+    description:
+      "روی صحنه در دوره‌های مختلف",
+  },
+  {
+    value:
+      "۱۰٬۰۰۰+",
+    title:
+      "مخاطب",
+    description:
+      "همراه بیرق ماندگار در سال‌های اجرا",
+  },
+  {
+    value:
+      "۲۲",
+    title:
+      "سال اجرا",
+    description:
+      "بیش از دو دهه استمرار روی صحنه",
+  },
+];
+
+
 export default function StatsSection() {
- const items=[["+50","اجرا"],["+1000","مخاطب"],["+10","سال تجربه"]];
- return <section dir="rtl" className="grid md:grid-cols-3 gap-6 px-6 py-20">{items.map(x=><div className="bg-white/5 rounded-3xl p-8 text-center" key={x[1]}><b className="text-4xl text-[#d4af37]">{x[0]}</b><p>{x[1]}</p></div>)}</section>;
+  return (
+    <section
+      className="home-stats"
+      dir="rtl"
+      aria-label="آمار بیرق ماندگار"
+    >
+      <div className="home-container home-stats__grid">
+        {items.map(
+          (item) => (
+            <article
+              key={item.title}
+              className="home-stat-card"
+            >
+              <div className="home-stat-card__value">
+                {item.value}
+              </div>
+
+              <div className="home-stat-card__title">
+                {item.title}
+              </div>
+
+              <p>
+                {item.description}
+              </p>
+            </article>
+          )
+        )}
+      </div>
+    </section>
+  );
 }

@@ -1,5 +1,32 @@
+async function readJson(
+  response
+) {
+  const data =
+    await response
+      .json()
+      .catch(
+        () => ({})
+      );
 
-export async function getDashboardStats(){
- const res=await fetch("/api/admin/dashboard/stats");
- return res.json();
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      "خطا در دریافت اطلاعات داشبورد"
+    );
+  }
+
+  return data;
+}
+
+
+export async function getDashboardStats() {
+  return readJson(
+    await fetch(
+      "/api/admin/dashboard/stats",
+      {
+        credentials:
+          "include",
+      }
+    )
+  );
 }

@@ -1,12 +1,64 @@
-import Header from "./Header";
-import Footer from "./Footer";
+import {
+  useEffect,
+} from "react";
 
-export default function AppShell({children}) {
+import {
+  Outlet,
+  useLocation,
+} from "react-router-dom";
+
+import SiteHeader from "../../ui/SiteHeader";
+import SiteFooter from "../../ui/SiteFooter";
+
+export default function AppShell({
+  children,
+}) {
+  const location =
+    useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      requestAnimationFrame(
+        () => {
+          const element =
+            document.getElementById(
+              location.hash.slice(1)
+            );
+
+          if (element) {
+            element.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }
+        }
+      );
+
+      return;
+    }
+
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  }, [
+    location.pathname,
+    location.hash,
+  ]);
+
   return (
-    <div dir="rtl" className="min-h-screen bg-[#111] text-white">
-      <Header />
-      <main>{children}</main>
-      <Footer />
+    <div
+      className="site-shell"
+      dir="rtl"
+    >
+      <SiteHeader />
+
+      <div className="site-main">
+        {children ?? <Outlet />}
+      </div>
+
+      <SiteFooter />
     </div>
   );
 }

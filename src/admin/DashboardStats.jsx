@@ -1,25 +1,194 @@
+import {
+  Activity,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  Ticket,
+  Users,
+} from "lucide-react";
 
-export default function DashboardStats(){
- const stats=[
-  ["نمایش فعال","1"],
-  ["اجراها","12"],
-  ["رزروها","245"],
-  ["ظرفیت کل","550"]
- ];
+import {
+  AdminMetricCard,
+} from "./ui/AdminPrimitives";
 
- return (
-  <div className="grid md:grid-cols-4 gap-5" dir="rtl">
-   {stats.map(s=>(
-    <div key={s[0]}
-     className="bg-[#171717] border border-white/10 rounded-3xl p-6">
-     <div className="text-[#d4af37] text-3xl font-bold">
-      {s[1]}
-     </div>
-     <div className="mt-2 text-white/70">
-      {s[0]}
-     </div>
-    </div>
-   ))}
-  </div>
- );
+import {
+  faNumber,
+} from "./ui/formatFa";
+
+
+function numberValue(
+  value
+) {
+  const numeric =
+    Number(value);
+
+  return Number.isFinite(
+    numeric
+  )
+    ? numeric
+    : 0;
+}
+
+
+export default function DashboardStats({
+  stats,
+}) {
+  const normalized = {
+    shows:
+      numberValue(
+        stats?.shows ??
+        stats?.productions
+      ),
+
+    performances:
+      numberValue(
+        stats?.performances
+      ),
+
+    reservations:
+      numberValue(
+        stats?.reservations
+      ),
+
+    tickets:
+      numberValue(
+        stats?.tickets
+      ),
+
+    totalCapacity:
+      numberValue(
+        stats?.totalCapacity
+      ),
+
+    remainingCapacity:
+      numberValue(
+        stats?.remainingCapacity
+      ),
+  };
+
+
+  const cards = [
+    {
+      title:
+        "نمایش‌ها",
+
+      value:
+        normalized.shows,
+
+      description:
+        "آثار نمایشی ثبت‌شده",
+
+      icon:
+        FileText,
+    },
+
+    {
+      title:
+        "اجراها",
+
+      value:
+        normalized.performances,
+
+      description:
+        "تمام اجراهای ثبت‌شده",
+
+      icon:
+        CalendarDays,
+    },
+
+    {
+      title:
+        "رزروها",
+
+      value:
+        normalized.reservations,
+
+      description:
+        "رزروهای ثبت‌شده سامانه",
+
+      icon:
+        Users,
+    },
+
+    {
+      title:
+        "بلیت‌های رزرو شده",
+
+      value:
+        normalized.tickets,
+
+      description:
+        "مجموع بلیت‌های ثبت‌شده",
+
+      icon:
+        Ticket,
+
+      tone:
+        "success",
+    },
+
+    {
+      title:
+        "ظرفیت کل",
+
+      value:
+        normalized.totalCapacity,
+
+      description:
+        "ظرفیت تعریف‌شده اجراها",
+
+      icon:
+        Activity,
+    },
+
+    {
+      title:
+        "ظرفیت باقی‌مانده",
+
+      value:
+        normalized.remainingCapacity,
+
+      description:
+        "ظرفیت باقی‌مانده برای رزرو",
+
+      icon:
+        CheckCircle2,
+
+      tone:
+        "success",
+    },
+  ];
+
+
+  return (
+    <section className="dashboard-metrics">
+      {cards.map(
+        (card) => (
+          <AdminMetricCard
+            key={
+              card.title
+            }
+            title={
+              card.title
+            }
+            value={
+              faNumber(
+                card.value
+              )
+            }
+            description={
+              card.description
+            }
+            icon={
+              card.icon
+            }
+            tone={
+              card.tone ||
+              "default"
+            }
+          />
+        )
+      )}
+    </section>
+  );
 }
