@@ -466,7 +466,7 @@ export default function ReservationManager() {
                     .value
                 )
             }
-            placeholder="جستجو در نام، موبایل، کد پیگیری یا اجرا..."
+            placeholder="جستجو در نام، بخشی از موبایل، کد پیگیری یا اجرا..."
           />
         </label>
 

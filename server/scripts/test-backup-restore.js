@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -11,9 +13,12 @@ const root =
   process.cwd();
 
 const backupDir =
-  path.join(
-    root,
-    "backups"
+  path.resolve(
+    process.env.BACKUP_DIR ||
+    path.join(
+      root,
+      "backups"
+    )
   );
 
 

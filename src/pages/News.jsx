@@ -218,7 +218,7 @@ export default function News() {
                       "
                     >
                       {item.excerpt ||
-                        item.body}
+                        item.content}
                     </p>
 
                     <Link

@@ -12,3 +12,4 @@ backups/
 *.backup-before-*
 beyragh-reference-ui-v2.zip
 beyragh-upcoming-posters-package.zip
+.test-data/

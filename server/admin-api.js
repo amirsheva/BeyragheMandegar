@@ -42,6 +42,91 @@ function normalizeTags(value) {
   return JSON.stringify([]);
 }
 
+
+function maskPhone(value) {
+  const digits =
+    String(
+      value || ""
+    )
+      .replace(
+        /\D/g,
+        ""
+      );
+
+  if (
+    digits.length < 8
+  ) {
+    return "••••";
+  }
+
+  return (
+    digits.slice(
+      0,
+      4
+    ) +
+    "***" +
+    digits.slice(
+      -4
+    )
+  );
+}
+
+
+function maskNationalId(value) {
+  const digits =
+    String(
+      value || ""
+    )
+      .replace(
+        /\D/g,
+        ""
+      );
+
+  if (
+    digits.length < 6
+  ) {
+    return "••••";
+  }
+
+  return (
+    digits.slice(
+      0,
+      2
+    ) +
+    "****" +
+    digits.slice(
+      -4
+    )
+  );
+}
+
+
+function serializeReservation(
+  item
+) {
+  const data =
+    item?.toJSON
+      ? item.toJSON()
+      : {
+          ...item,
+        };
+
+  return {
+    ...data,
+
+    phone:
+      maskPhone(
+        data.phone
+      ),
+
+    national_id:
+      maskNationalId(
+        data.national_id
+      ),
+  };
+}
+
+
 router.get("/dashboard/stats", async (req, res) => {
   try {
     const [productions, performances, reservations, tickets] = await Promise.all([
@@ -684,7 +769,11 @@ router.get("/reservations", async (req, res) => {
       order: [["createdAt", "DESC"]],
     });
 
-    res.json(items);
+    res.json(
+      items.map(
+        serializeReservation
+      )
+    );
   } catch (error) {
     console.error("Admin reservations error:", error);
     res.status(500).json({ message: "خطا در دریافت رزروها" });
@@ -709,7 +798,12 @@ router.patch("/reservations/:id/status", async (req, res) => {
 
     if (reservation.status === nextStatus) {
       await transaction.commit();
-      return res.json(reservation);
+
+      return res.json(
+        serializeReservation(
+          reservation
+        )
+      );
     }
 
     const performance = await Performance.findByPk(reservation.performance_id, {
@@ -741,7 +835,11 @@ router.patch("/reservations/:id/status", async (req, res) => {
     await reservation.save({ transaction });
     await transaction.commit();
 
-    res.json(reservation);
+    res.json(
+      serializeReservation(
+        reservation
+      )
+    );
   } catch (error) {
     if (!transaction.finished) await transaction.rollback();
     console.error("Update reservation status error:", error);

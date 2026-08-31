@@ -1,13 +1,21 @@
+import "dotenv/config";
+
 import {
   Sequelize,
   DataTypes,
 } from "sequelize";
+
+import {
+  decryptPii,
+  encryptPii,
+} from "./security/pii-crypto.js";
 
 
 const sequelize =
   new Sequelize({
     dialect: "sqlite",
     storage:
+      process.env.DB_STORAGE ||
       "./reservations.db",
     logging: false,
     retry: {
@@ -327,12 +335,46 @@ const Reservation =
         type:
           DataTypes.STRING,
         allowNull: false,
+
+        get() {
+          return decryptPii(
+            this.getDataValue(
+              "phone"
+            )
+          );
+        },
+
+        set(value) {
+          this.setDataValue(
+            "phone",
+            encryptPii(
+              value
+            )
+          );
+        },
       },
 
       national_id: {
         type:
           DataTypes.STRING,
         allowNull: false,
+
+        get() {
+          return decryptPii(
+            this.getDataValue(
+              "national_id"
+            )
+          );
+        },
+
+        set(value) {
+          this.setDataValue(
+            "national_id",
+            encryptPii(
+              value
+            )
+          );
+        },
       },
 
       count: {

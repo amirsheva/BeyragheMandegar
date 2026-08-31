@@ -6,6 +6,11 @@ import cors from "cors";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import path from "path";
+
+import {
+  redactAccessUrl,
+} from "./security/access-log.js";
+import { randomBytes } from "crypto";
 import { Op } from "sequelize";
 
 import { setupAdmin } from "./admin.js";
@@ -36,16 +41,64 @@ import {
   requireAdminOrigin,
 } from "./auth.js";
 
+import {
+  otpRouter,
+  reservationOtpGuard,
+} from "./otp-routes.js";
+
+import {
+  assertOtpConfigured,
+  ensureOtpSchema,
+  consumeReservationOtpGrant,
+} from "./otp-service.js";
+
+
 function createTrackingCode() {
-  const stamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const stamp =
+    Date.now()
+      .toString(36)
+      .toUpperCase();
+
+  const random =
+    randomBytes(8)
+      .toString("hex")
+      .toUpperCase();
+
   return `BM-${stamp}-${random}`;
+}
+
+
+function normalizeDigits(value) {
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /[۰-۹]/g,
+      (char) =>
+        String(
+          "۰۱۲۳۴۵۶۷۸۹".indexOf(
+            char
+          )
+        )
+    )
+    .replace(
+      /[٠-٩]/g,
+      (char) =>
+        String(
+          "٠١٢٣٤٥٦٧٨٩".indexOf(
+            char
+          )
+        )
+    );
 }
 
 async function startServer() {
   assertAuthConfigured();
+  assertOtpConfigured();
 
   const app = express();
+
+  await ensureOtpSchema();
 
   app.use(
     helmet({
@@ -53,16 +106,120 @@ async function startServer() {
     })
   );
 
-  app.use(morgan("tiny"));
+  /*
+   * Reverse proxies such as Nginx must be
+   * trusted explicitly so req.ip and
+   * express-rate-limit work correctly.
+   */
+  if (
+    process.env.TRUST_PROXY ===
+    "1"
+  ) {
+    app.set(
+      "trust proxy",
+      1
+    );
+  }
+
+
+  const allowedOrigins =
+    String(
+      process.env.CORS_ORIGINS ||
+      "http://localhost:5173"
+    )
+      .split(",")
+      .map(
+        (value) =>
+          value.trim()
+      )
+      .filter(Boolean);
+
+
+  /*
+   * Tracking codes behave like access tokens.
+   * Never put the raw value in HTTP access logs.
+   */
+  morgan.token(
+    "safe-url",
+    (req) =>
+      redactAccessUrl(
+        req.originalUrl ||
+        req.url
+      )
+  );
+
+
+  app.use(
+    morgan(
+      ":method :safe-url :status :res[content-length] - :response-time ms"
+    )
+  );
+
 
   app.use(
     cors({
-      origin: ["http://localhost:5173"],
-      credentials: false,
+      origin(
+        origin,
+        callback
+      ) {
+        if (
+          !origin ||
+          allowedOrigins.includes(
+            origin
+          )
+        ) {
+          return callback(
+            null,
+            true
+          );
+        }
+
+        return callback(
+          null,
+          false
+        );
+      },
+
+      credentials:
+        false,
     })
   );
 
   app.use(express.json({ limit: "1mb" }));
+
+
+  // HEALTH_CHECK_V1
+  app.get(
+    "/api/health",
+    async (req, res) => {
+      try {
+        await sequelize.authenticate();
+
+        return res.json({
+          ok: true,
+          service:
+            "beyragh-api",
+          database:
+            "ready",
+        });
+
+      } catch (error) {
+        console.error(
+          "Health check failed:",
+          error
+        );
+
+        return res.status(503).json({
+          ok: false,
+          service:
+            "beyragh-api",
+          database:
+            "unavailable",
+        });
+      }
+    }
+  );
+
 
   app.use(
     "/api/",
@@ -89,9 +246,37 @@ async function startServer() {
       },
     });
 
+  // TICKET_LOOKUP_RATE_LIMIT_V1
+  const ticketLookupLimiter =
+    rateLimit({
+      windowMs:
+        60_000,
+
+      max:
+        20,
+
+      standardHeaders:
+        true,
+
+      legacyHeaders:
+        false,
+
+      message: {
+        message:
+          "تعداد درخواست‌های بررسی بلیت بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.",
+      },
+    });
+
+
   // ============================
   // Public API
   // ============================
+
+  app.use(
+    "/api/otp",
+    otpRouter
+  );
+
 
   app.get("/api/productions", async (req, res) => {
     try {
@@ -351,6 +536,7 @@ async function startServer() {
   // PUBLIC_TICKET_MVP_V1
   app.get(
     "/api/tickets/:trackingCode",
+    ticketLookupLimiter,
     async (req, res) => {
       try {
         const trackingCode =
@@ -511,6 +697,7 @@ async function startServer() {
   app.post(
     "/api/reservations",
     reservationLimiter,
+    reservationOtpGuard,
     async (req, res) => {
     const transaction =
   await sequelize.transaction({
@@ -626,12 +813,16 @@ async function startServer() {
         String(name || "").trim();
 
       const cleanPhone =
-        String(phone || "")
-          .replace(/\D/g, "");
+        normalizeDigits(
+          phone
+        )
+          .replace(
+            /\D/g,
+            ""
+          );
 
       const cleanNationalId =
-        String(nationalId || "")
-          .replace(/\D/g, "");
+        normalizedNationalId;
 
       if (
         !cleanName ||
@@ -722,6 +913,25 @@ async function startServer() {
             current?.remaining_capacity ?? 0,
         });
       }
+
+      /*
+       * Consume the OTP grant inside the SAME
+       * reservation transaction.
+       *
+       * If reservation creation later fails,
+       * SQLite rolls this used_at change back too.
+       */
+      if (
+        req.otpVerificationChallengeId
+      ) {
+        await consumeReservationOtpGrant({
+          challengeId:
+            req.otpVerificationChallengeId,
+
+          transaction,
+        });
+      }
+
 
       const reservation =
         await Reservation.create(
@@ -972,12 +1182,114 @@ app.get(["/admin", "/admin/", "/admin/*"], (req, res) => {
     res.status(404).json({ message: "مسیر یافت نشد" });
   });
 
-  const PORT = process.env.PORT || 4000;
+  const PORT =
+    process.env.PORT ||
+    4000;
 
-  app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-    console.log(`🔧 Admin panel at http://localhost:${PORT}/admin/`);
-  });
+
+  const server =
+    app.listen(
+      PORT,
+      () => {
+        console.log(
+          `✅ Server running on http://localhost:${PORT}`
+        );
+
+        console.log(
+          `🔧 Admin panel at http://localhost:${PORT}/admin/`
+        );
+      }
+    );
+
+
+  let shuttingDown =
+    false;
+
+
+  async function shutdown(
+    signal
+  ) {
+    if (shuttingDown) {
+      return;
+    }
+
+    shuttingDown =
+      true;
+
+    console.log(
+      `🛑 ${signal} received. Graceful shutdown started.`
+    );
+
+
+    const forceExitTimer =
+      setTimeout(
+        () => {
+          console.error(
+            "❌ Graceful shutdown timed out."
+          );
+
+          process.exit(
+            1
+          );
+        },
+        10_000
+      );
+
+    forceExitTimer.unref();
+
+
+    server.close(
+      async (error) => {
+        try {
+          if (error) {
+            throw error;
+          }
+
+          await sequelize.close();
+
+          clearTimeout(
+            forceExitTimer
+          );
+
+          console.log(
+            "✅ Server stopped cleanly."
+          );
+
+          process.exit(
+            0
+          );
+
+        } catch (shutdownError) {
+          console.error(
+            "❌ Shutdown failed:",
+            shutdownError
+          );
+
+          process.exit(
+            1
+          );
+        }
+      }
+    );
+  }
+
+
+  process.once(
+    "SIGTERM",
+    () =>
+      shutdown(
+        "SIGTERM"
+      )
+  );
+
+
+  process.once(
+    "SIGINT",
+    () =>
+      shutdown(
+        "SIGINT"
+      )
+  );
 }
 
 startServer().catch((error) => {

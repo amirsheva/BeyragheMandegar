@@ -7,10 +7,12 @@ import AppShell from "./components/layout/AppShell";
 import Home from "./pages/Home";
 import Performance from "./pages/Performance";
 import Booking from "./pages/Booking";
+import TrackReservation from "./pages/TrackReservation";
 import News from "./pages/News";
 import NewsDetail from "./pages/NewsDetail";
 import Ticket from "./pages/Ticket";
 import NotFound from "./components/common/NotFound";
+
 
 export default function App() {
   return (
@@ -29,6 +31,11 @@ export default function App() {
         <Route
           path="/booking"
           element={<Booking />}
+        />
+
+        <Route
+          path="/track"
+          element={<TrackReservation />}
         />
 
         <Route

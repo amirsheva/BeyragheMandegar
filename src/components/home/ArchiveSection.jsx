@@ -1,4 +1,4 @@
-﻿import {
+import {
   useEffect,
   useMemo,
   useState,
@@ -485,6 +485,7 @@ export default function ArchiveSection() {
                   >
                     <Building2
                       size={22}
+                      className="home-archive-venue__icon"
                     />
 
                     <div>

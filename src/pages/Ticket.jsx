@@ -756,7 +756,10 @@ export default function TicketPage() {
 
             <div
               dir="ltr"
+              lang="en"
+              data-keep-latin-digits="true"
               className="
+                tracking-code-technical
                 mt-2
                 break-all
                 font-mono

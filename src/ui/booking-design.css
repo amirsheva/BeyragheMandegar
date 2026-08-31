@@ -1020,3 +1020,664 @@ html[data-theme="light"]
   color:
     #fff2eb;
 }
+
+
+
+/* ===== FINAL REVIEW TICKET START ===== */
+
+/*
+ * FINAL REVIEW VISUAL MATCH V7
+ * Approved screenshot with 4 tickets is the reference.
+ */
+
+
+/* ------------------------------------------------------------
+ * PAGE / FINAL SHELL BACKGROUND DEPTH
+ * ---------------------------------------------------------- */
+
+.booking-page {
+  position:
+    relative;
+
+  isolation:
+    isolate;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 42%,
+      rgba(88, 45, 37, 0.11) 0%,
+      rgba(39, 21, 18, 0.055) 28%,
+      rgba(7, 7, 7, 0) 58%
+    ),
+    linear-gradient(
+      180deg,
+      #070707 0%,
+      #080706 46%,
+      #050505 100%
+    ) !important;
+}
+
+
+.booking-page::before {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  inset:
+    0;
+
+  z-index:
+    -1;
+
+  pointer-events:
+    none;
+
+  background:
+    radial-gradient(
+      circle at 50% 58%,
+      rgba(139, 72, 58, 0.045),
+      transparent 44%
+    );
+}
+
+
+.booking-final-shell {
+  background:
+    radial-gradient(
+      ellipse at 54% 24%,
+      rgba(129, 66, 53, 0.11) 0%,
+      rgba(47, 25, 21, 0.055) 38%,
+      transparent 67%
+    ),
+    linear-gradient(
+      135deg,
+      #0b0908 0%,
+      #0c0908 48%,
+      #090807 100%
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 215, 200, 0.018),
+    0 24px 80px
+    rgba(0, 0, 0, 0.16);
+}
+
+
+/* ------------------------------------------------------------
+ * FINAL REVIEW HEADER / ROSETTE
+ * ---------------------------------------------------------- */
+
+.booking-final-review {
+  width:
+    100%;
+}
+
+
+.booking-final-review__layout {
+  margin-top:
+    0;
+}
+
+
+.booking-final-review__details {
+  align-self:
+    start;
+}
+
+
+.booking-final-review__seal {
+  width:
+    64px;
+
+  height:
+    64px;
+
+  margin-top:
+    -2px;
+
+  filter:
+    drop-shadow(
+      0 0 8px
+      rgba(196, 111, 96, 0.055)
+    );
+}
+
+
+.booking-final-review__title {
+  font-size:
+    34px;
+
+  line-height:
+    1.42;
+}
+
+
+.booking-final-review__subtitle {
+  font-size:
+    14px;
+
+  line-height:
+    1.9;
+}
+
+
+.booking-final-review__header-divider {
+  width:
+    100%;
+}
+
+
+/* ------------------------------------------------------------
+ * TICKET
+ * ---------------------------------------------------------- */
+
+.booking-final-ticket {
+  min-height:
+    640px;
+
+  padding:
+    0;
+
+  border:
+    0;
+
+  border-radius:
+    0;
+
+  background:
+    transparent;
+
+  overflow:
+    visible;
+}
+
+
+.booking-final-ticket__outline {
+  z-index:
+    0;
+
+  pointer-events:
+    none;
+
+  filter:
+    drop-shadow(
+      0 16px 34px
+      rgba(0, 0, 0, 0.16)
+    );
+}
+
+
+.booking-final-ticket__content {
+  min-height:
+    640px;
+
+  padding:
+    39px 27px 30px;
+}
+
+
+.booking-final-ticket__eyebrow {
+  font-size:
+    15px;
+
+  line-height:
+    1.8;
+}
+
+
+.booking-final-ticket__night {
+  margin-top:
+    23px;
+
+  font-size:
+    43px;
+
+  line-height:
+    1.35;
+}
+
+
+.booking-final-ticket__divider {
+  margin-top:
+    23px;
+
+  margin-bottom:
+    29px;
+
+  width:
+    100%;
+}
+
+
+.booking-final-ticket__meta-list {
+  display:
+    grid;
+
+  gap:
+    25px;
+}
+
+
+.booking-final-ticket__meta-label {
+  font-size:
+    15px;
+
+  line-height:
+    1.7;
+}
+
+
+.booking-final-ticket__meta-value {
+  margin-top:
+    8px;
+
+  padding-right:
+    35px;
+
+  font-size:
+    22px;
+
+  line-height:
+    1.5;
+}
+
+
+/* ------------------------------------------------------------
+ * RESERVED TICKET COUNT
+ * ---------------------------------------------------------- */
+
+.booking-final-ticket__count {
+  min-height:
+    201px;
+
+  margin-top:
+    auto;
+
+  margin-inline:
+    -7px;
+
+  padding:
+    23px 27px 21px;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  justify-content:
+    space-between;
+
+  border-radius:
+    12px;
+
+  background:
+    radial-gradient(
+      circle at 15% 76%,
+      rgba(205, 110, 89, 0.20),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 77% 24%,
+      rgba(147, 61, 49, 0.16),
+      transparent 45%
+    ),
+    linear-gradient(
+      132deg,
+      #27120f 0%,
+      #371713 42%,
+      #4b211a 100%
+    );
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 200, 182, 0.045),
+    inset 0 0 46px
+    rgba(215, 119, 96, 0.07);
+}
+
+
+.booking-final-ticket__count-label {
+  font-size:
+    16px;
+
+  line-height:
+    1.8;
+}
+
+
+.booking-final-ticket__count-value {
+  direction:
+    rtl;
+
+  min-height:
+    88px;
+}
+
+
+.booking-final-ticket__count-number {
+  font-size:
+    60px;
+}
+
+
+.booking-final-ticket__count-unit {
+  padding-bottom:
+    6px;
+
+  font-size:
+    27px;
+
+  line-height:
+    1;
+}
+
+
+.booking-final-ticket__seat-watermark {
+  width:
+    142px;
+
+  height:
+    120px;
+
+  color:
+    #c46f5d;
+
+  opacity:
+    .16;
+
+  transform:
+    rotate(-1deg);
+}
+
+
+/* ------------------------------------------------------------
+ * REVIEW DATA - LABEL THEN VALUE, ABOUT ONE TAB APART
+ * ---------------------------------------------------------- */
+
+.booking-final-review-section__title {
+  direction:
+    rtl;
+}
+
+
+.booking-final-review-section__rows {
+  display:
+    grid;
+
+  gap:
+    0;
+}
+
+
+.booking-final-review-section--separated {
+  margin-top:
+    23px;
+
+  padding-top:
+    21px;
+
+  border-top:
+    1px dashed
+    #553831;
+}
+
+
+.booking-final-review-row {
+  display:
+    flex;
+
+  flex-direction:
+    row;
+
+  direction:
+    rtl;
+
+  align-items:
+    center;
+
+  justify-content:
+    flex-start;
+
+  gap:
+    17px;
+
+  min-height:
+    39px;
+
+  padding:
+    0;
+}
+
+
+.booking-final-review-row__label {
+  flex:
+    0 0 108px;
+
+  width:
+    108px;
+
+  direction:
+    rtl;
+
+  font-size:
+    15px;
+
+  line-height:
+    1.6;
+
+  text-align:
+    right;
+}
+
+
+.booking-final-review-row__value {
+  flex:
+    0 1 auto;
+
+  width:
+    auto;
+
+  max-width:
+    320px;
+
+  direction:
+    rtl;
+
+  font-size:
+    17px;
+
+  line-height:
+    1.6;
+
+  text-align:
+    right;
+}
+
+
+/* ------------------------------------------------------------
+ * ACTIONS / SUBMIT GRADIENT
+ * ---------------------------------------------------------- */
+
+.booking-final-review__actions {
+  display:
+    grid;
+
+  grid-template-columns:
+    .82fr
+    1fr;
+
+  gap:
+    18px;
+
+  direction:
+    ltr;
+}
+
+
+.booking-final-review__edit {
+  direction:
+    rtl;
+}
+
+
+.booking-final-review__submit {
+  direction:
+    rtl;
+
+  background:
+    linear-gradient(
+      94deg,
+      #873027 0%,
+      #a54236 46%,
+      #bd6253 100%
+    );
+
+  box-shadow:
+    0 14px 35px
+    rgba(100, 30, 24, 0.25),
+    inset 0 1px 0
+    rgba(255, 219, 205, 0.10);
+}
+
+
+.booking-final-review__submit:hover {
+  background:
+    linear-gradient(
+      94deg,
+      #94352c 0%,
+      #b1493c 46%,
+      #c96c5b 100%
+    );
+}
+
+
+/* ------------------------------------------------------------
+ * RESPONSIVE
+ * ---------------------------------------------------------- */
+
+@media (
+  max-width:
+    1023px
+) {
+
+  .booking-final-ticket {
+    min-height:
+      620px;
+  }
+
+
+  .booking-final-ticket__content {
+    min-height:
+      620px;
+  }
+
+
+  .booking-final-review-row {
+    gap:
+      15px;
+  }
+
+
+  .booking-final-review-row__label {
+    flex-basis:
+      104px;
+
+    width:
+      104px;
+  }
+
+}
+
+
+@media (
+  max-width:
+    639px
+) {
+
+  .booking-final-review__seal {
+    width:
+      55px;
+
+    height:
+      55px;
+  }
+
+
+  .booking-final-review__title {
+    font-size:
+      29px;
+  }
+
+
+  .booking-final-ticket {
+    min-height:
+      590px;
+  }
+
+
+  .booking-final-ticket__content {
+    min-height:
+      590px;
+
+    padding:
+      36px 25px 28px;
+  }
+
+
+  .booking-final-ticket__night {
+    font-size:
+      39px;
+  }
+
+
+  .booking-final-ticket__count {
+    min-height:
+      190px;
+
+    margin-inline:
+      -4px;
+  }
+
+
+  .booking-final-review-row {
+    gap:
+      12px;
+
+    min-height:
+      41px;
+  }
+
+
+  .booking-final-review-row__label {
+    flex-basis:
+      100px;
+
+    width:
+      100px;
+  }
+
+
+  .booking-final-review-row__value {
+    font-size:
+      16px;
+  }
+
+
+  .booking-final-review__actions {
+    display:
+      flex;
+
+    flex-direction:
+      column-reverse;
+
+    gap:
+      12px;
+  }
+
+}
+
+/* ===== FINAL REVIEW TICKET END ===== */

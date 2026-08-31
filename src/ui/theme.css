@@ -1432,3 +1432,167 @@ button {
       1 !important;
   }
 }
+
+/* ===== BRAND VECTOR + TECHNICAL ID START ===== */
+
+/*
+ * Brand vector
+ * All SVG artwork uses currentColor.
+ * No hard-coded black/white interior.
+ */
+
+.site-brand__mark {
+  width: 36px;
+  height: 36px;
+
+  flex:
+    0 0 36px;
+
+  display:
+    inline-grid;
+
+  place-items:
+    center;
+
+  box-sizing:
+    border-box;
+
+  border:
+    1px solid
+    var(--ui-border-strong);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent);
+
+  box-shadow:
+    none;
+
+  transition:
+    color .16s ease,
+    background-color .16s ease,
+    border-color .16s ease,
+    transform .16s ease;
+}
+
+
+.site-brand__mark svg {
+  width: 22px;
+  height: 22px;
+
+  display:
+    block;
+
+  overflow:
+    visible;
+
+  fill:
+    none;
+}
+
+
+.site-brand:hover
+.site-brand__mark {
+  transform:
+    translateY(-1px);
+
+  border-color:
+    var(--ui-accent);
+}
+
+
+/*
+ * Explicit Dark mode validation target
+ */
+
+html[data-theme="dark"]
+.site-brand__mark {
+  border-color:
+    var(--ui-border-strong);
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent);
+}
+
+
+/*
+ * Explicit Light mode validation target
+ */
+
+html[data-theme="light"]
+.site-brand__mark {
+  border-color:
+    var(--ui-border-strong);
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent-strong);
+}
+
+
+/*
+ * Technical identifiers must remain Latin/LTR.
+ */
+
+.tracking-code-technical {
+  direction:
+    ltr;
+
+  unicode-bidi:
+    isolate;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+
+@media (
+  max-width:
+    640px
+) {
+
+  .site-brand__mark {
+    width:
+      32px;
+
+    height:
+      32px;
+
+    flex-basis:
+      32px;
+
+    border-radius:
+      10px;
+  }
+
+
+  .site-brand__mark svg {
+    width:
+      19px;
+
+    height:
+      19px;
+  }
+
+}
+
+/* ===== BRAND VECTOR + TECHNICAL ID END ===== */

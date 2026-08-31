@@ -5,7 +5,9 @@ import {
   Reservation,
 } from "../models.js";
 
-const BASE_URL = "http://localhost:4000";
+const BASE_URL =
+  process.env.TEST_BASE_URL ||
+  "http://localhost:4000";
 
 let performance = null;
 

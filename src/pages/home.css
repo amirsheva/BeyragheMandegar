@@ -1,4 +1,4 @@
-﻿.home-container {
+.home-container {
   width:
     min(
       calc(100% - 48px),
@@ -1666,3 +1666,280 @@ html[data-theme="light"]
       column;
   }
 }
+
+
+/* ===== HERO SPLIT LAYOUT START ===== */
+
+@media (min-width: 1000px) {
+
+  /*
+   * REAL DESKTOP SPLIT
+   * Left  = content
+   * Right = artwork
+   */
+
+  .home-hero__media {
+    left: auto !important;
+    right: 0 !important;
+
+    width: 72% !important;
+  }
+
+
+  .home-hero__media img {
+    width: 100% !important;
+    height: 100% !important;
+
+    object-fit: cover !important;
+    object-position: center center !important;
+  }
+
+
+  /*
+   * Dark readable zone on the left.
+   * Right side keeps the artwork visible.
+   */
+
+  .home-hero__veil {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(7, 7, 7, 1) 0%,
+        rgba(7, 7, 7, .98) 12%,
+        rgba(7, 7, 7, .92) 25%,
+        rgba(7, 7, 7, .72) 38%,
+        rgba(7, 7, 7, .32) 52%,
+        rgba(7, 7, 7, .08) 68%,
+        rgba(7, 7, 7, 0) 82%
+      ) !important;
+  }
+
+
+  /*
+   * Force the content into the LEFT column.
+   */
+
+  .home-hero__inner {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 42%)
+      minmax(0, 58%) !important;
+
+    align-items: center !important;
+
+    direction: ltr !important;
+  }
+
+
+  .home-hero__content {
+    grid-column: 1 !important;
+
+    justify-self: start !important;
+
+    width: 100% !important;
+    max-width: 540px !important;
+
+    margin: 0 !important;
+
+    direction: rtl !important;
+    text-align: right !important;
+
+    position: relative !important;
+    z-index: 5 !important;
+  }
+
+
+  .home-hero__content h1,
+  .home-hero__lead,
+  .home-hero__brand,
+  .home-hero__availability,
+  .home-hero__actions {
+    direction: rtl !important;
+    text-align: right !important;
+  }
+
+
+  .home-hero__brand,
+  .home-hero__actions {
+    justify-content: flex-start !important;
+  }
+
+
+  .home-hero__lead {
+    margin-inline: 0 !important;
+  }
+
+
+  .home-hero__availability {
+    margin-inline: 0 !important;
+  }
+
+}
+
+
+/*
+ * Keep current tablet/mobile composition.
+ */
+
+@media (max-width: 999px) {
+
+  .home-hero__media {
+    width: 100%;
+  }
+
+}
+
+/* ===== HERO SPLIT LAYOUT END ===== */
+
+/* ===== ARCHIVE VENUE VECTOR THEME START ===== */
+
+.home-archive-venue__icon {
+  width:
+    46px !important;
+
+  height:
+    46px !important;
+
+  box-sizing:
+    border-box;
+
+  flex:
+    0 0 auto;
+
+  padding:
+    11px;
+
+  border:
+    1px solid
+    var(--ui-border);
+
+  border-radius:
+    14px;
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent)
+    !important;
+
+  stroke:
+    currentColor
+    !important;
+
+  fill:
+    none
+    !important;
+}
+
+
+.home-archive-venue
+> svg:last-child {
+  color:
+    var(--ui-text-muted);
+
+  stroke:
+    currentColor;
+
+  fill:
+    none;
+}
+
+
+/*
+ * DARK
+ */
+
+html[data-theme="dark"]
+.home-archive-venue__icon {
+  border-color:
+    var(--ui-border-strong);
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent)
+    !important;
+
+  fill:
+    none
+    !important;
+}
+
+
+/*
+ * LIGHT
+ * Explicitly prevents the icon body from becoming black.
+ */
+
+html[data-theme="light"]
+.home-archive-venue__icon {
+  border-color:
+    var(--ui-border);
+
+  background:
+    var(--ui-accent-soft);
+
+  color:
+    var(--ui-accent-strong)
+    !important;
+
+  stroke:
+    currentColor
+    !important;
+
+  fill:
+    none
+    !important;
+}
+
+/* ===== ARCHIVE VENUE VECTOR THEME END ===== */
+
+
+/* ===== HERO LIGHT GHOST FIX START ===== */
+
+/*
+ * Hero is intentionally cinematic/dark in BOTH themes.
+ * Do not let Light theme wash out its secondary CTA.
+ */
+
+html[data-theme="light"]
+.home-hero
+.home-button--ghost {
+  border-color:
+    rgba(255,255,255,.22)
+    !important;
+
+  background:
+    rgba(0,0,0,.34)
+    !important;
+
+  color:
+    #f5eee7
+    !important;
+
+  box-shadow:
+    0 8px 24px
+    rgba(0,0,0,.16);
+}
+
+
+html[data-theme="light"]
+.home-hero
+.home-button--ghost:hover {
+  border-color:
+    rgba(255,255,255,.38)
+    !important;
+
+  background:
+    rgba(0,0,0,.52)
+    !important;
+
+  color:
+    #ffffff
+    !important;
+}
+
+/* ===== HERO LIGHT GHOST FIX END ===== */

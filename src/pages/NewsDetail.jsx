@@ -302,7 +302,7 @@ export default function NewsDetail() {
             text-[#c4b8b0]
           "
         >
-          {item.body}
+          {item.content}
         </div>
       </article>
     </main>

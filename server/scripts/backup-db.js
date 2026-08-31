@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import fs from "fs";
 import path from "path";
 import { Sequelize } from "sequelize";
@@ -11,15 +13,21 @@ const root =
   process.cwd();
 
 const source =
-  path.join(
-    root,
-    "reservations.db"
+  path.resolve(
+    process.env.DB_STORAGE ||
+    path.join(
+      root,
+      "reservations.db"
+    )
   );
 
 const backupDir =
-  path.join(
-    root,
-    "backups"
+  path.resolve(
+    process.env.BACKUP_DIR ||
+    path.join(
+      root,
+      "backups"
+    )
   );
 
 
@@ -49,7 +57,7 @@ async function run() {
 
   if (!fs.existsSync(source)) {
     throw new Error(
-      "reservations.db پیدا نشد."
+      `Database source پیدا نشد: ${source}`
     );
   }
 
