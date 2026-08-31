@@ -1,1 +1,15 @@
 node_modules
+.adminjs/
+dist/
+dist-admin/
+reservations.db
+.DS_Store
+.env
+backups/
+*.db
+*.sqlite
+*.sqlite3
+*.backup-before-*
+beyragh-reference-ui-v2.zip
+beyragh-upcoming-posters-package.zip
+.test-data/

@@ -1,0 +1,8 @@
+/* REAL-04 component styling foundation */
+.card-hover {
+  transition: transform .2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+}

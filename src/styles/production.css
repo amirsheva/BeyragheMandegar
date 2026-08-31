@@ -1,0 +1,9 @@
+/* REAL-07 production polish */
+* {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font-family: inherit;
+}

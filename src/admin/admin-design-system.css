@@ -1,0 +1,996 @@
+.admin-shell {
+  --ds-radius-sm: 12px;
+  --ds-radius-md: 16px;
+  --ds-radius-lg: 22px;
+  --ds-radius-xl: 26px;
+
+  --ds-title-size:
+    clamp(
+      30px,
+      2.1vw,
+      36px
+    );
+
+  --ds-card-title-size:
+    19px;
+
+  --ds-body-size:
+    15px;
+
+  --ds-label-size:
+    14px;
+
+  --ds-small-size:
+    13px;
+
+  --ds-transition:
+    160ms ease;
+}
+
+
+.ds-page-header {
+  display:
+    flex;
+
+  align-items:
+    flex-end;
+
+  justify-content:
+    space-between;
+
+  gap:
+    28px;
+
+  padding-bottom:
+    26px;
+
+  margin-bottom:
+    30px;
+
+  border-bottom:
+    1px solid
+    var(--admin-border-soft);
+}
+
+
+.ds-page-header__copy {
+  min-width:
+    0;
+}
+
+
+.ds-page-eyebrow {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  margin-bottom:
+    7px;
+
+  color:
+    var(--admin-accent);
+
+  font-size:
+    14px;
+
+  line-height:
+    1.6;
+
+  font-weight:
+    850;
+}
+
+
+.ds-page-title {
+  margin:
+    0;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    var(--ds-title-size)
+    !important;
+
+  line-height:
+    1.35
+    !important;
+
+  font-weight:
+    900;
+}
+
+
+.ds-page-description {
+  max-width:
+    780px;
+
+  margin:
+    8px 0 0;
+
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    15px;
+
+  line-height:
+    1.9;
+}
+
+
+.ds-page-actions {
+  flex:
+    0 0 auto;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    10px;
+}
+
+
+.ds-button {
+  min-height:
+    46px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    0 18px;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius:
+    999px;
+
+  font-family:
+    inherit;
+
+  font-size:
+    15px;
+
+  line-height:
+    1;
+
+  font-weight:
+    800;
+
+  cursor:
+    pointer;
+
+  transition:
+    transform
+    var(--ds-transition),
+    background-color
+    var(--ds-transition),
+    border-color
+    var(--ds-transition),
+    color
+    var(--ds-transition);
+}
+
+
+.ds-button:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+}
+
+
+.ds-button:disabled {
+  opacity:
+    .45;
+
+  cursor:
+    not-allowed;
+}
+
+
+.ds-button--primary {
+  border-color:
+    var(--admin-accent-border);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--admin-accent),
+      var(--admin-accent-surface)
+    );
+
+  color:
+    #fff8f3;
+}
+
+
+.ds-button--secondary {
+  border-color:
+    var(--admin-border);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text);
+}
+
+
+.ds-button--ghost {
+  border-color:
+    var(--admin-border-soft);
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text-soft);
+}
+
+
+.ds-button--danger {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--admin-danger)
+      45%,
+      transparent
+    );
+
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+}
+
+
+.ds-card {
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    var(--ds-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text);
+
+  box-shadow:
+    var(--admin-shadow);
+}
+
+
+.ds-metric {
+  min-height:
+    145px;
+
+  padding:
+    22px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    var(--ds-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text);
+
+  box-shadow:
+    var(--admin-shadow);
+}
+
+
+.ds-metric__top {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    14px;
+}
+
+
+.ds-metric__label {
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    14px;
+
+  line-height:
+    1.7;
+
+  font-weight:
+    700;
+}
+
+
+.ds-metric__icon {
+  width:
+    40px;
+
+  height:
+    40px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border-radius:
+    13px;
+
+  background:
+    var(--admin-icon-bg);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.ds-metric__value {
+  margin-top:
+    17px;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    32px;
+
+  line-height:
+    1.2;
+
+  font-weight:
+    900;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+
+.ds-metric__description {
+  margin-top:
+    7px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    13px;
+
+  line-height:
+    1.7;
+}
+
+
+.ds-metric--success
+.ds-metric__icon {
+  background:
+    var(--admin-success-bg);
+
+  color:
+    var(--admin-success);
+}
+
+
+.ds-metric--danger
+.ds-metric__icon {
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+}
+
+
+.ds-status {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  min-height:
+    30px;
+
+  padding:
+    4px 11px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    999px;
+
+  font-size:
+    13px;
+
+  line-height:
+    1.4;
+
+  font-weight:
+    800;
+
+  white-space:
+    nowrap;
+}
+
+
+.ds-status--success {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--admin-success)
+      45%,
+      transparent
+    );
+
+  background:
+    var(--admin-success-bg);
+
+  color:
+    var(--admin-success);
+}
+
+
+.ds-status--danger {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--admin-danger)
+      45%,
+      transparent
+    );
+
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+}
+
+
+.ds-status--accent {
+  border-color:
+    var(--admin-accent-border);
+
+  background:
+    var(--admin-accent-soft);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.ds-status--neutral {
+  border-color:
+    var(--admin-border-soft);
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text-soft);
+}
+
+
+.ds-search {
+  min-height:
+    54px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    11px;
+
+  padding:
+    0 17px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    var(--ds-radius-md);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-accent);
+
+  transition:
+    border-color
+    var(--ds-transition),
+    box-shadow
+    var(--ds-transition);
+}
+
+
+.ds-search:focus-within {
+  border-color:
+    var(--admin-accent-border);
+
+  box-shadow:
+    0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--admin-accent)
+      12%,
+      transparent
+    );
+}
+
+
+.ds-search input {
+  width:
+    100%;
+
+  min-width:
+    0;
+
+  border:
+    0 !important;
+
+  outline:
+    0;
+
+  background:
+    transparent !important;
+
+  color:
+    var(--admin-text)
+    !important;
+
+  font-family:
+    inherit;
+
+  font-size:
+    15px;
+
+  line-height:
+    1.7;
+}
+
+
+.ds-search input::placeholder {
+  color:
+    var(--admin-muted)
+    !important;
+}
+
+
+.ds-field {
+  display:
+    block;
+}
+
+
+.ds-field__label {
+  display:
+    block;
+
+  margin-bottom:
+    7px;
+
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    14px;
+
+  line-height:
+    1.6;
+
+  font-weight:
+    800;
+}
+
+
+.ds-field__hint {
+  display:
+    block;
+
+  margin-top:
+    -3px;
+
+  margin-bottom:
+    8px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    13px;
+
+  line-height:
+    1.7;
+}
+
+
+.ds-field
+input,
+.ds-field
+textarea,
+.ds-field
+select {
+  width:
+    100%;
+
+  box-sizing:
+    border-box;
+
+  border:
+    1px solid
+    var(--admin-border)
+    !important;
+
+  border-radius:
+    15px
+    !important;
+
+  background:
+    var(--admin-surface-2)
+    !important;
+
+  color:
+    var(--admin-text)
+    !important;
+
+  padding:
+    12px 14px;
+
+  font-family:
+    inherit;
+
+  font-size:
+    15px
+    !important;
+
+  line-height:
+    1.75;
+
+  outline:
+    none;
+}
+
+
+.ds-field
+input:focus,
+.ds-field
+textarea:focus,
+.ds-field
+select:focus {
+  border-color:
+    var(--admin-accent-border)
+    !important;
+}
+
+
+.ds-empty {
+  min-height:
+    230px;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  padding:
+    34px;
+
+  border:
+    1px dashed
+    var(--admin-border);
+
+  border-radius:
+    var(--ds-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  text-align:
+    center;
+}
+
+
+.ds-empty__icon {
+  width:
+    54px;
+
+  height:
+    54px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border-radius:
+    17px;
+
+  background:
+    var(--admin-accent-soft);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.ds-empty__title {
+  margin:
+    16px 0 0;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    19px
+    !important;
+
+  line-height:
+    1.5
+    !important;
+
+  font-weight:
+    850;
+}
+
+
+.ds-empty__description {
+  max-width:
+    560px;
+
+  margin:
+    7px 0 0;
+
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    15px;
+
+  line-height:
+    1.85;
+}
+
+
+.ds-empty__action {
+  margin-top:
+    18px;
+}
+
+
+.admin-shell
+table {
+  font-size:
+    15px;
+}
+
+
+.admin-shell
+table th {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    14px
+    !important;
+
+  line-height:
+    1.65;
+
+  font-weight:
+    800;
+}
+
+
+.admin-shell
+table td {
+  font-size:
+    15px
+    !important;
+
+  line-height:
+    1.7;
+}
+
+
+.admin-shell
+table tbody tr {
+  transition:
+    background-color
+    var(--ds-transition);
+}
+
+
+.admin-shell
+table tbody tr:hover {
+  background:
+    var(--admin-hover);
+}
+
+
+@media (
+  max-width: 760px
+) {
+  .ds-page-header {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+  }
+
+  .ds-page-actions {
+    width:
+      100%;
+  }
+
+  .ds-page-actions
+  .ds-button {
+    flex:
+      1;
+  }
+
+  .ds-metric {
+    min-height:
+      125px;
+  }
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON STANDARD — VENUE DESIGN REFERENCE
+   ========================================================= */
+
+.admin-shell {
+  --ds-primary-from:
+    #57211e;
+
+  --ds-primary-to:
+    #762b26;
+
+  --ds-primary-border:
+    #98574c;
+
+  --ds-primary-text:
+    #f3e5dc;
+}
+
+
+html[data-admin-theme="light"]
+.admin-shell {
+  --ds-primary-from:
+    #a75346;
+
+  --ds-primary-to:
+    #8e4136;
+
+  --ds-primary-border:
+    #9c5145;
+
+  --ds-primary-text:
+    #fffaf7;
+}
+
+
+.admin-shell
+.ds-button--primary {
+  border-color:
+    var(--ds-primary-border)
+    !important;
+
+  background:
+    linear-gradient(
+      to left,
+      var(--ds-primary-from),
+      var(--ds-primary-to)
+    )
+    !important;
+
+  color:
+    var(--ds-primary-text)
+    !important;
+
+  box-shadow:
+    0 8px 22px
+    rgba(
+      95,
+      35,
+      29,
+      .14
+    );
+}
+
+
+.admin-shell
+.ds-button--primary:hover:not(:disabled) {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--ds-primary-border)
+      78%,
+      white
+    )
+    !important;
+
+  filter:
+    brightness(1.06);
+}
+
+/* =========================================================
+   ADMIN FINAL PRIMARY BUTTON STANDARD
+   Venue is the canonical visual reference.
+   ========================================================= */
+
+.admin-shell .ds-button--primary {
+  border-radius: 999px !important;
+  min-height: 44px;
+  padding-inline: 20px;
+  font-weight: 900;
+}
+
+.admin-shell .ds-button--primary svg {
+  flex: 0 0 auto;
+}
