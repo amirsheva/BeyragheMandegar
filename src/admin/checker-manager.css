@@ -1,0 +1,1141 @@
+.checker-manager {
+  display:
+    grid;
+
+  gap:
+    22px;
+}
+
+
+.checker-manager__message {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    12px 14px;
+
+  border-radius:
+    14px;
+
+  font-size:
+    12px;
+
+  font-weight:
+    850;
+}
+
+
+.checker-manager__message.is-error {
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--admin-danger)
+      35%,
+      transparent
+    );
+
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+}
+
+
+.checker-manager__message.is-success {
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--admin-success)
+      35%,
+      transparent
+    );
+
+  background:
+    var(--admin-success-bg);
+
+  color:
+    var(--admin-success);
+}
+
+
+.checker-manager__metrics {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    12px;
+}
+
+
+.checker-manager__layout {
+  display:
+    grid;
+
+  grid-template-columns:
+    minmax(
+      360px,
+      .82fr
+    )
+    minmax(
+      0,
+      1.18fr
+    );
+
+  gap:
+    18px;
+
+  align-items:
+    start;
+}
+
+
+.checker-manager__form-card,
+.checker-manager__users-card {
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    22px;
+
+  background:
+    var(--admin-surface);
+
+  box-shadow:
+    var(--admin-shadow);
+}
+
+
+.checker-manager__form-card {
+  padding:
+    20px;
+
+  position:
+    sticky;
+
+  top:
+    18px;
+}
+
+
+.checker-manager__form-head,
+.checker-manager__list-head {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    14px;
+}
+
+
+.checker-manager__form-head
+> div,
+.checker-manager__list-head
+> div {
+  display:
+    grid;
+
+  gap:
+    3px;
+}
+
+
+.checker-manager__form-head
+span,
+.checker-manager__list-head
+span {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+
+  font-weight:
+    800;
+}
+
+
+.checker-manager__form-head
+h2 {
+  margin:
+    0;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    17px;
+
+  font-weight:
+    950;
+}
+
+
+.checker-manager__list-head
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    15px;
+
+  font-weight:
+    900;
+}
+
+
+.checker-manager__ghost,
+.checker-manager__refresh {
+  min-height:
+    38px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    7px;
+
+  padding:
+    0 11px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    11px;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text-soft);
+
+  font-family:
+    inherit;
+
+  font-size:
+    11px;
+
+  font-weight:
+    800;
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__fields {
+  display:
+    grid;
+
+  gap:
+    13px;
+
+  margin-top:
+    19px;
+}
+
+
+.checker-manager__fields
+label {
+  display:
+    grid;
+
+  gap:
+    6px;
+}
+
+
+.checker-manager__fields
+label
+> span {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    11px;
+
+  font-weight:
+    800;
+}
+
+
+.checker-manager
+input[type="text"],
+.checker-manager
+input[type="password"],
+.checker-manager__fields
+input {
+  width:
+    100%;
+
+  min-height:
+    44px;
+
+  padding:
+    0 13px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    13px;
+
+  outline:
+    none;
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    inherit;
+
+  font-size:
+    12px;
+
+  font-weight:
+    750;
+}
+
+
+.checker-manager
+input:focus {
+  border-color:
+    var(--admin-accent-border);
+
+  box-shadow:
+    0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--admin-accent)
+      8%,
+      transparent
+    );
+}
+
+
+.checker-manager
+input:disabled {
+  opacity:
+    .55;
+
+  cursor:
+    not-allowed;
+}
+
+
+.checker-manager__toggle {
+  display:
+    grid;
+
+  grid-template-columns:
+    auto auto 1fr;
+
+  align-items:
+    start;
+
+  gap:
+    10px;
+
+  margin-top:
+    14px;
+
+  padding:
+    12px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    15px;
+
+  background:
+    var(--admin-surface-2);
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__toggle
+input {
+  position:
+    absolute;
+
+  opacity:
+    0;
+
+  pointer-events:
+    none;
+}
+
+
+.checker-manager__toggle-box {
+  width:
+    31px;
+
+  height:
+    31px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    10px;
+
+  color:
+    var(--admin-muted);
+
+  background:
+    var(--admin-surface);
+}
+
+
+.checker-manager__toggle
+input:checked
++
+.checker-manager__toggle-box {
+  border-color:
+    var(--admin-accent-border);
+
+  background:
+    var(--admin-accent-surface);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checker-manager__toggle
+> span:last-child {
+  display:
+    grid;
+
+  gap:
+    4px;
+}
+
+
+.checker-manager__toggle
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    12px;
+
+  font-weight:
+    900;
+}
+
+
+.checker-manager__toggle
+small {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+
+  line-height:
+    1.8;
+}
+
+
+.checker-manager__performance-box {
+  margin-top:
+    14px;
+
+  padding:
+    13px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    16px;
+
+  background:
+    var(--admin-surface-2);
+}
+
+
+.checker-manager__performance-title {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    9px;
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checker-manager__performance-title
+div {
+  display:
+    grid;
+
+  gap:
+    3px;
+}
+
+
+.checker-manager__performance-title
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    12px;
+}
+
+
+.checker-manager__performance-title
+span {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+}
+
+
+.checker-manager__performance-list {
+  display:
+    grid;
+
+  gap:
+    7px;
+
+  max-height:
+    280px;
+
+  margin-top:
+    12px;
+
+  overflow-y:
+    auto;
+}
+
+
+.checker-manager__performance-item {
+  display:
+    grid;
+
+  grid-template-columns:
+    auto 1fr;
+
+  align-items:
+    center;
+
+  gap:
+    9px;
+
+  padding:
+    10px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--admin-surface);
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__performance-item.is-selected {
+  border-color:
+    var(--admin-accent-border);
+
+  background:
+    var(--admin-accent-surface);
+}
+
+
+.checker-manager__performance-item
+input {
+  width:
+    16px;
+
+  height:
+    16px;
+
+  accent-color:
+    var(--admin-accent);
+}
+
+
+.checker-manager__performance-item
+> span {
+  display:
+    grid;
+
+  gap:
+    3px;
+}
+
+
+.checker-manager__performance-item
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    11px;
+}
+
+
+.checker-manager__performance-item
+small {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    9px;
+}
+
+
+.checker-manager__empty-performances {
+  margin-top:
+    12px;
+
+  padding:
+    18px;
+
+  color:
+    var(--admin-muted);
+
+  text-align:
+    center;
+
+  font-size:
+    10px;
+}
+
+
+.checker-manager__save {
+  width:
+    100%;
+
+  min-height:
+    46px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    8px;
+
+  margin-top:
+    16px;
+
+  border:
+    1px solid
+    var(--admin-accent-border);
+
+  border-radius:
+    14px;
+
+  background:
+    var(--admin-accent-surface);
+
+  color:
+    var(--admin-accent);
+
+  font-family:
+    inherit;
+
+  font-size:
+    12px;
+
+  font-weight:
+    900;
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__password-reset {
+  margin-top:
+    16px;
+
+  padding-top:
+    16px;
+
+  border-top:
+    1px solid
+    var(--admin-border-soft);
+}
+
+
+.checker-manager__password-reset
+> div:first-child {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    7px;
+
+  margin-bottom:
+    9px;
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checker-manager__password-reset
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    11px;
+}
+
+
+.checker-manager__password-row {
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr auto;
+
+  gap:
+    8px;
+}
+
+
+.checker-manager__password-row
+button {
+  min-width:
+    92px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    6px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text-soft);
+
+  font-family:
+    inherit;
+
+  font-size:
+    10px;
+
+  font-weight:
+    850;
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__users-card {
+  padding:
+    18px;
+}
+
+
+.checker-manager__user-list {
+  display:
+    grid;
+
+  gap:
+    10px;
+
+  margin-top:
+    15px;
+}
+
+
+.checker-manager__user {
+  display:
+    grid;
+
+  grid-template-columns:
+    minmax(
+      180px,
+      1.15fr
+    )
+    auto
+    minmax(
+      220px,
+      .9fr
+    )
+    auto;
+
+  align-items:
+    center;
+
+  gap:
+    13px;
+
+  padding:
+    13px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    16px;
+
+  background:
+    var(--admin-surface-2);
+}
+
+
+.checker-manager__user.is-disabled {
+  opacity:
+    .62;
+}
+
+
+.checker-manager__user-main {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    10px;
+}
+
+
+.checker-manager__avatar {
+  width:
+    38px;
+
+  height:
+    38px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  flex:
+    0 0 auto;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checker-manager__user-main
+> div:last-child {
+  display:
+    grid;
+
+  gap:
+    3px;
+}
+
+
+.checker-manager__user-main
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    12px;
+}
+
+
+.checker-manager__user-main
+code {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+}
+
+
+.checker-manager__badges {
+  display:
+    flex;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    6px;
+}
+
+
+.checker-manager__activity {
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    7px;
+}
+
+
+.checker-manager__activity
+span {
+  display:
+    grid;
+
+  gap:
+    2px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    9px;
+}
+
+
+.checker-manager__activity
+strong {
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    10px;
+}
+
+
+.checker-manager__edit {
+  min-height:
+    37px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    6px;
+
+  padding:
+    0 10px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    11px;
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-soft);
+
+  font-family:
+    inherit;
+
+  font-size:
+    10px;
+
+  font-weight:
+    850;
+
+  white-space:
+    nowrap;
+
+  cursor:
+    pointer;
+}
+
+
+.checker-manager__loading {
+  margin-top:
+    15px;
+
+  padding:
+    28px;
+
+  border:
+    1px dashed
+    var(--admin-border);
+
+  border-radius:
+    15px;
+
+  color:
+    var(--admin-muted);
+
+  text-align:
+    center;
+
+  font-size:
+    11px;
+}
+
+
+@media (
+  max-width: 1180px
+) {
+  .checker-manager__layout {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checker-manager__form-card {
+    position:
+      static;
+  }
+
+
+  .checker-manager__user {
+    grid-template-columns:
+      1fr auto;
+  }
+
+
+  .checker-manager__activity {
+    grid-column:
+      1 / -1;
+  }
+}
+
+
+@media (
+  max-width: 700px
+) {
+  .checker-manager__metrics {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checker-manager__user {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checker-manager__activity {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checker-manager__badges {
+    justify-content:
+      flex-start;
+  }
+
+
+  .checker-manager__password-row {
+    grid-template-columns:
+      1fr;
+  }
+}

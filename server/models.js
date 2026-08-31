@@ -354,6 +354,12 @@ const Reservation =
         },
       },
 
+      phone_lookup: {
+        type:
+          DataTypes.STRING,
+        allowNull: true,
+      },
+
       national_id: {
         type:
           DataTypes.STRING,

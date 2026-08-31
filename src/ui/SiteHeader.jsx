@@ -167,6 +167,12 @@ const navigation = [
   },
   {
     label:
+      "رزروهای من",
+    to:
+      "/my-reservations",
+  },
+  {
+    label:
       "آرشیو",
     to:
       "/#archive",

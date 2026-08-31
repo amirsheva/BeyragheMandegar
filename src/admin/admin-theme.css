@@ -1182,3 +1182,218 @@ textarea {
       18px;
   }
 }
+
+/* ===== ADMIN LIGHT THEME VISUAL FIX PACK V1 START ===== */
+
+
+/*
+ * VenueManager still contains a number of canonical Dark
+ * Tailwind colors. This adapter keeps Dark mode unchanged and
+ * maps only the Light Theme presentation to Admin tokens.
+ */
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#efe4dc]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#e7dbd3]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#e7dcd4]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#e6dad2]"] {
+  color:
+    var(--admin-text)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#827871]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#8d8179]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#b7aaa1]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#958981]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#968a82]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#7f756f]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#776d67]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#776e68]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#92857e]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#998d86]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#bfaea4]"] {
+  color:
+    var(--admin-text-soft)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="placeholder:text-[#5e5753]"]::placeholder {
+  color:
+    var(--admin-muted)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#3f302b]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#594039]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#43312c]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#72483f]"] {
+  border-color:
+    var(--admin-border)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="bg-[#241310]"] {
+  background:
+    var(--admin-accent-soft)
+    !important;
+}
+
+
+/* Active status must remain semantically green in Light mode. */
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="bg-[#102318]"] {
+  background:
+    var(--admin-success-bg)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#77bc8c]"] {
+  color:
+    var(--admin-success)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#386146]"] {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--admin-success)
+      36%,
+      transparent
+    )
+    !important;
+}
+
+
+/* Delete / error actions remain visibly destructive. */
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="bg-[#160c0b]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="bg-[#28110f]"] {
+  background:
+    var(--admin-danger-bg)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#c36e68]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="text-[#e58d82]"] {
+  color:
+    var(--admin-danger)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#58312e]"],
+html[data-admin-theme="light"]
+.venue-manager
+[class*="border-[#713c36]"] {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--admin-danger)
+      38%,
+      transparent
+    )
+    !important;
+}
+
+
+/* Edit and map-link affordances need real contrast in Light mode. */
+
+html[data-admin-theme="light"]
+.venue-manager
+a[class*="text-[#92857e]"],
+html[data-admin-theme="light"]
+.venue-manager
+button[class*="text-[#bfaea4]"] {
+  color:
+    var(--admin-text-soft)
+    !important;
+
+  border-color:
+    var(--admin-border)
+    !important;
+}
+
+
+html[data-admin-theme="light"]
+.venue-manager
+a[class*="text-[#92857e]"]:hover,
+html[data-admin-theme="light"]
+.venue-manager
+button[class*="text-[#bfaea4]"]:hover {
+  background:
+    var(--admin-hover)
+    !important;
+
+  color:
+    var(--admin-accent)
+    !important;
+}
+
+
+/* ===== ADMIN LIGHT THEME VISUAL FIX PACK V1 END ===== */

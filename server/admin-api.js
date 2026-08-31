@@ -10,11 +10,28 @@ import {
 } from "./models.js";
 
 import {
+  buildReservationCsv,
+} from "./reservation-export.js";
+
+import {
   SmsTemplate,
   SmsCampaign,
   SmsMessage,
 } from "./sms/models.js";
 
+
+import {
+  getAdminCheckinSnapshot,
+  listAdminCheckinPerformances,
+} from "./checkin-service.js";
+
+import {
+  createCheckerUser,
+  listCheckerAssignablePerformances,
+  listCheckerUsersAdmin,
+  resetCheckerPassword,
+  updateCheckerUser,
+} from "./checker-user-service.js";
 
 const router = Router();
 
@@ -761,24 +778,208 @@ router.get("/reservations", async (req, res) => {
             {
               model: Production,
               as: "production",
-              attributes: ["id", "title", "slug"],
+              attributes: [
+                "id",
+                "title",
+                "slug",
+              ],
             },
           ],
         },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [
+        [
+          "createdAt",
+          "DESC",
+        ],
+      ],
     });
 
-    res.json(
+
+    return res.json(
       items.map(
         serializeReservation
       )
     );
+
   } catch (error) {
-    console.error("Admin reservations error:", error);
-    res.status(500).json({ message: "خطا در دریافت رزروها" });
+    console.error(
+      "Admin reservations error:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "خطا در دریافت رزروها",
+    });
   }
 });
+
+
+/*
+ * RESERVATION_EXPORT_V1
+ *
+ * The browser sends only the IDs that are currently visible after
+ * search/filtering. The server re-fetches those reservations and
+ * serializes them with the same PII masking used by Admin UI.
+ *
+ * Raw national ID is intentionally NOT part of the CSV schema.
+ */
+router.post(
+  "/reservations/export",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const sourceIds =
+        Array.isArray(
+          req.body?.ids
+        )
+          ? req.body.ids
+          : [];
+
+
+      const ids =
+        [
+          ...new Set(
+            sourceIds
+              .map(
+                Number
+              )
+              .filter(
+                (value) =>
+                  Number.isInteger(
+                    value
+                  ) &&
+                  value > 0
+              )
+          ),
+        ];
+
+
+      if (
+        ids.length === 0
+      ) {
+        return res.status(400).json({
+          message:
+            "هیچ رزروی برای خروجی انتخاب نشده است.",
+        });
+      }
+
+
+      if (
+        ids.length > 5000
+      ) {
+        return res.status(400).json({
+          message:
+            "حداکثر ۵۰۰۰ رزرو در هر خروجی قابل دریافت است.",
+        });
+      }
+
+
+      const items =
+        await Reservation.findAll({
+          where: {
+            id: {
+              [Op.in]:
+                ids,
+            },
+          },
+
+          include: [
+            {
+              model:
+                Performance,
+
+              as:
+                "performance",
+
+              include: [
+                {
+                  model:
+                    Production,
+
+                  as:
+                    "production",
+
+                  attributes: [
+                    "id",
+                    "title",
+                    "slug",
+                  ],
+                },
+              ],
+            },
+          ],
+
+          order: [
+            [
+              "createdAt",
+              "DESC",
+            ],
+          ],
+        });
+
+
+      const safeItems =
+        items.map(
+          serializeReservation
+        );
+
+
+      const csv =
+        buildReservationCsv(
+          safeItems
+        );
+
+
+      const date =
+        new Date()
+          .toISOString()
+          .slice(
+            0,
+            10
+          );
+
+
+      res.setHeader(
+        "Content-Type",
+        "text/csv; charset=utf-8"
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="beyragh-reservations-${date}.csv"`
+      );
+
+      res.setHeader(
+        "X-Export-Count",
+        String(
+          safeItems.length
+        )
+      );
+
+
+      return res
+        .status(200)
+        .send(
+          csv
+        );
+
+    } catch (error) {
+      console.error(
+        "Reservation export error:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "خطا در ساخت خروجی رزروها",
+      });
+    }
+  }
+);
 
 router.patch("/reservations/:id/status", async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -1675,5 +1876,345 @@ router.post(
 );
 
 
+
+
+
+/* ===== ADMIN_CHECKIN_API_V1 START ===== */
+
+
+router.get(
+  "/checkin/dashboard",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const performances =
+        await listAdminCheckinPerformances();
+
+
+      return res.json({
+        ok:
+          true,
+
+        performances,
+      });
+
+    } catch (error) {
+      console.error(
+        "Admin check-in dashboard error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          message:
+            "خطا در دریافت داشبورد پذیرش.",
+        });
+    }
+  }
+);
+
+
+router.get(
+  "/checkin/performances/:id",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const performanceId =
+        Number(
+          req.params.id
+        );
+
+
+      const snapshot =
+        await getAdminCheckinSnapshot(
+          performanceId,
+          50
+        );
+
+
+      return res.json({
+        ok:
+          true,
+
+        performanceId,
+
+        ...snapshot,
+      });
+
+    } catch (error) {
+      console.error(
+        "Admin check-in performance error:",
+        error
+      );
+
+
+      if (
+        error.code ===
+        "INVALID_PERFORMANCE"
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "اجرای انتخاب‌شده معتبر نیست.",
+          });
+      }
+
+
+      return res
+        .status(500)
+        .json({
+          message:
+            "خطا در دریافت وضعیت پذیرش اجرا.",
+        });
+    }
+  }
+);
+
+
+/* ===== ADMIN_CHECKIN_API_V1 END ===== */
+
+
+
+/* ===== ADMIN_CHECKER_MANAGEMENT_V1 START ===== */
+
+
+function checkerAdminError(
+  error,
+  res
+) {
+  const map = {
+    INVALID_USERNAME: [
+      400,
+      "نام کاربری باید حداقل ۳ کاراکتر و فقط شامل حروف انگلیسی، عدد، نقطه، خط تیره یا زیرخط باشد.",
+    ],
+
+    INVALID_DISPLAY_NAME: [
+      400,
+      "نام نمایشی مسئول سالن معتبر نیست.",
+    ],
+
+    INVALID_PASSWORD: [
+      400,
+      "رمز عبور باید حداقل ۱۰ کاراکتر باشد.",
+    ],
+
+    INVALID_PERFORMANCE: [
+      400,
+      "یکی از اجراهای انتخاب‌شده معتبر نیست.",
+    ],
+
+    DUPLICATE_USERNAME: [
+      409,
+      "این نام کاربری قبلاً استفاده شده است.",
+    ],
+
+    NOT_FOUND: [
+      404,
+      "حساب مسئول سالن یافت نشد.",
+    ],
+  };
+
+
+  const entry =
+    map[
+      error.code
+    ];
+
+
+  if (entry) {
+    return res
+      .status(
+        entry[0]
+      )
+      .json({
+        message:
+          entry[1],
+      });
+  }
+
+
+  console.error(
+    "Checker admin error:",
+    error
+  );
+
+
+  return res
+    .status(500)
+    .json({
+      message:
+        "خطا در مدیریت مسئولان سالن.",
+    });
+}
+
+
+router.get(
+  "/checkers",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      return res.json({
+        ok:
+          true,
+
+        users:
+          await listCheckerUsersAdmin(),
+
+        performances:
+          await listCheckerAssignablePerformances(),
+      });
+
+    } catch (error) {
+      return checkerAdminError(
+        error,
+        res
+      );
+    }
+  }
+);
+
+
+router.post(
+  "/checkers",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const user =
+        await createCheckerUser({
+          username:
+            req.body
+              ?.username,
+
+          displayName:
+            req.body
+              ?.displayName,
+
+          password:
+            req.body
+              ?.password,
+
+          active:
+            req.body
+              ?.active !==
+            false,
+
+          allPerformances:
+            Boolean(
+              req.body
+                ?.allPerformances
+            ),
+
+          performanceIds:
+            req.body
+              ?.performanceIds,
+        });
+
+
+      return res
+        .status(201)
+        .json({
+          ok:
+            true,
+
+          user,
+        });
+
+    } catch (error) {
+      return checkerAdminError(
+        error,
+        res
+      );
+    }
+  }
+);
+
+
+router.patch(
+  "/checkers/:id",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const user =
+        await updateCheckerUser(
+          req.params.id,
+          {
+            displayName:
+              req.body
+                ?.displayName,
+
+            active:
+              req.body
+                ?.active,
+
+            allPerformances:
+              req.body
+                ?.allPerformances,
+
+            performanceIds:
+              req.body
+                ?.performanceIds,
+          }
+        );
+
+
+      return res.json({
+        ok:
+          true,
+
+        user,
+      });
+
+    } catch (error) {
+      return checkerAdminError(
+        error,
+        res
+      );
+    }
+  }
+);
+
+
+router.post(
+  "/checkers/:id/reset-password",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      await resetCheckerPassword(
+        req.params.id,
+        req.body
+          ?.password
+      );
+
+
+      return res.json({
+        ok:
+          true,
+      });
+
+    } catch (error) {
+      return checkerAdminError(
+        error,
+        res
+      );
+    }
+  }
+);
+
+
+/* ===== ADMIN_CHECKER_MANAGEMENT_V1 END ===== */
 
 export default router;

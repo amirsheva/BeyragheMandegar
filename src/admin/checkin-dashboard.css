@@ -1,0 +1,843 @@
+.checkin-admin {
+  display:
+    grid;
+
+  gap:
+    22px;
+}
+
+
+.checkin-admin__error {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    9px;
+
+  padding:
+    13px 15px;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--admin-danger)
+      35%,
+      transparent
+    );
+
+  border-radius:
+    15px;
+
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+
+  font-size:
+    13px;
+
+  font-weight:
+    800;
+}
+
+
+.checkin-admin__toolbar {
+  display:
+    grid;
+
+  grid-template-columns:
+    minmax(
+      280px,
+      1fr
+    )
+    auto;
+
+  align-items:
+    end;
+
+  gap:
+    16px;
+
+  padding:
+    16px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    20px;
+
+  background:
+    var(--admin-surface);
+}
+
+
+.checkin-admin__performance-select {
+  display:
+    grid;
+
+  gap:
+    7px;
+}
+
+
+.checkin-admin__performance-select
+> span {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    12px;
+
+  font-weight:
+    850;
+}
+
+
+.checkin-admin__performance-select
+select {
+  min-height:
+    46px;
+
+  padding:
+    0 14px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    14px;
+
+  outline:
+    none;
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    inherit;
+
+  font-weight:
+    800;
+}
+
+
+.checkin-admin__toolbar-actions {
+  display:
+    flex;
+
+  flex-wrap:
+    wrap;
+
+  align-items:
+    center;
+
+  justify-content:
+    flex-end;
+
+  gap:
+    9px;
+}
+
+
+.checkin-admin__auto {
+  min-height:
+    44px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    0 12px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    13px;
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    12px;
+
+  font-weight:
+    750;
+}
+
+
+.checkin-admin__refresh,
+.checkin-admin__open-checker {
+  min-height:
+    44px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    0 14px;
+
+  border-radius:
+    13px;
+
+  font-family:
+    inherit;
+
+  font-size:
+    12px;
+
+  font-weight:
+    850;
+
+  text-decoration:
+    none;
+
+  cursor:
+    pointer;
+}
+
+
+.checkin-admin__refresh {
+  border:
+    1px solid
+    var(--admin-border);
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text-soft);
+}
+
+
+.checkin-admin__open-checker {
+  border:
+    1px solid
+    var(--admin-accent-border);
+
+  background:
+    var(--admin-accent-surface);
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checkin-admin__refresh:disabled {
+  opacity:
+    .45;
+
+  cursor:
+    not-allowed;
+}
+
+
+.checkin-admin__refresh
+.is-spinning {
+  animation:
+    checkin-spin
+    .8s
+    linear
+    infinite;
+}
+
+
+@keyframes checkin-spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+
+.checkin-admin__metrics {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    12px;
+}
+
+
+.checkin-admin__progress-card,
+.checkin-admin__section {
+  padding:
+    20px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    22px;
+
+  background:
+    var(--admin-surface);
+}
+
+
+.checkin-admin__progress-head {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    16px;
+}
+
+
+.checkin-admin__progress-head
+> div {
+  display:
+    grid;
+
+  gap:
+    4px;
+}
+
+
+.checkin-admin__progress-head
+span {
+  color:
+    var(--admin-muted);
+
+  font-size:
+    12px;
+
+  font-weight:
+    750;
+}
+
+
+.checkin-admin__progress-head
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    15px;
+
+  font-weight:
+    900;
+}
+
+
+.checkin-admin__progress-head
+> strong {
+  color:
+    var(--admin-success);
+
+  font-size:
+    23px;
+}
+
+
+.checkin-admin__progress-track {
+  height:
+    12px;
+
+  margin-top:
+    16px;
+
+  overflow:
+    hidden;
+
+  border-radius:
+    999px;
+
+  background:
+    var(--admin-surface-2);
+}
+
+
+.checkin-admin__progress-track
+span {
+  display:
+    block;
+
+  height:
+    100%;
+
+  border-radius:
+    inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--admin-accent),
+      var(--admin-success)
+    );
+
+  transition:
+    width
+    .3s ease;
+}
+
+
+.checkin-admin__result-chips {
+  display:
+    flex;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    8px;
+
+  margin-top:
+    16px;
+}
+
+
+.checkin-admin__result-chip {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    8px 11px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    999px;
+
+  background:
+    var(--admin-surface-2);
+
+  color:
+    var(--admin-text-soft);
+
+  font-size:
+    11px;
+
+  font-weight:
+    800;
+}
+
+
+.checkin-admin__result-chip
+strong {
+  color:
+    var(--admin-text);
+}
+
+
+.checkin-admin__result-chip.is-success {
+  background:
+    var(--admin-success-bg);
+
+  color:
+    var(--admin-success);
+}
+
+
+.checkin-admin__result-chip.is-danger {
+  background:
+    var(--admin-danger-bg);
+
+  color:
+    var(--admin-danger);
+}
+
+
+.checkin-admin__result-chip.is-warning {
+  color:
+    #8b6e1f;
+}
+
+
+.checkin-admin__section-title {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    10px;
+
+  margin-bottom:
+    17px;
+
+  color:
+    var(--admin-accent);
+}
+
+
+.checkin-admin__section-title
+div {
+  display:
+    grid;
+
+  gap:
+    4px;
+}
+
+
+.checkin-admin__section-title
+h2 {
+  margin:
+    0;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    17px;
+
+  font-weight:
+    950;
+}
+
+
+.checkin-admin__section-title
+p {
+  margin:
+    0;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    12px;
+}
+
+
+.checkin-admin__checker-grid {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    12px;
+}
+
+
+.checkin-admin__checker-card {
+  padding:
+    15px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    17px;
+
+  background:
+    var(--admin-surface-2);
+}
+
+
+.checkin-admin__checker-name {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    10px;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    13px;
+
+  font-weight:
+    900;
+}
+
+
+.checkin-admin__checker-stats {
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    8px;
+
+  margin-top:
+    13px;
+}
+
+
+.checkin-admin__checker-stats
+span {
+  display:
+    grid;
+
+  gap:
+    3px;
+
+  padding:
+    9px;
+
+  border:
+    1px solid
+    var(--admin-border-soft);
+
+  border-radius:
+    12px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+
+  font-weight:
+    750;
+}
+
+
+.checkin-admin__checker-stats
+strong {
+  color:
+    var(--admin-text);
+
+  font-size:
+    17px;
+}
+
+
+.checkin-admin__checker-last {
+  margin-top:
+    11px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    10px;
+}
+
+
+.checkin-admin__checker-last
+strong {
+  color:
+    var(--admin-text-soft);
+}
+
+
+.checkin-admin__table-scroll {
+  overflow-x:
+    auto;
+}
+
+
+.checkin-admin__table {
+  width:
+    100%;
+
+  border-collapse:
+    collapse;
+
+  min-width:
+    760px;
+}
+
+
+.checkin-admin__table
+th,
+.checkin-admin__table
+td {
+  padding:
+    12px 11px;
+
+  border-bottom:
+    1px solid
+    var(--admin-border-soft);
+
+  text-align:
+    right;
+
+  font-size:
+    12px;
+}
+
+
+.checkin-admin__table
+th {
+  color:
+    var(--admin-muted);
+
+  font-weight:
+    850;
+}
+
+
+.checkin-admin__table
+td {
+  color:
+    var(--admin-text-soft);
+
+  font-weight:
+    700;
+}
+
+
+.checkin-admin__nowrap {
+  white-space:
+    nowrap;
+}
+
+
+.checkin-admin__empty-inline,
+.checkin-admin__loading {
+  padding:
+    28px;
+
+  border:
+    1px dashed
+    var(--admin-border);
+
+  border-radius:
+    17px;
+
+  color:
+    var(--admin-muted);
+
+  text-align:
+    center;
+
+  font-size:
+    12px;
+}
+
+
+@media (
+  max-width: 1250px
+) {
+  .checkin-admin__metrics {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .checkin-admin__checker-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+}
+
+
+@media (
+  max-width: 850px
+) {
+  .checkin-admin__toolbar {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checkin-admin__toolbar-actions {
+    justify-content:
+      flex-start;
+  }
+
+
+  .checkin-admin__metrics,
+  .checkin-admin__checker-grid {
+    grid-template-columns:
+      1fr 1fr;
+  }
+}
+
+
+@media (
+  max-width: 560px
+) {
+  .checkin-admin__metrics,
+  .checkin-admin__checker-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .checkin-admin__toolbar-actions {
+    display:
+      grid;
+
+    grid-template-columns:
+      1fr;
+  }
+}

@@ -5,21 +5,20 @@ on:
     branches:
       - main
       - develop
+      - "release/**"
 
   pull_request:
     branches:
       - main
       - develop
-
+      - "release/**"
 
 permissions:
   contents: read
 
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     timeout-minutes: 15
 
     steps:
@@ -46,6 +45,24 @@ jobs:
 
       - name: Core integration tests
         run: npm run test:core
+
+      - name: OTP service tests
+        run: npm run test:otp
+
+      - name: Customer portal tests
+        run: npm run test:customer
+
+      - name: Reservation operations test
+        run: npm run test:reservation-ops
+
+      - name: QR check-in test
+        run: npm run test:checkin
+
+      - name: Attendance dashboard test
+        run: npm run test:attendance
+
+      - name: Ticket checker management test
+        run: npm run test:checkers
 
       - name: Backup and restore test
         run: npm run test:backup

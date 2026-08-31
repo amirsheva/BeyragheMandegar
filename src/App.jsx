@@ -8,9 +8,11 @@ import Home from "./pages/Home";
 import Performance from "./pages/Performance";
 import Booking from "./pages/Booking";
 import TrackReservation from "./pages/TrackReservation";
+import MyReservations from "./pages/MyReservations";
 import News from "./pages/News";
 import NewsDetail from "./pages/NewsDetail";
 import Ticket from "./pages/Ticket";
+import CheckIn from "./pages/CheckIn";
 import NotFound from "./components/common/NotFound";
 
 
@@ -39,6 +41,11 @@ export default function App() {
         />
 
         <Route
+          path="/my-reservations"
+          element={<MyReservations />}
+        />
+
+        <Route
           path="/news"
           element={<News />}
         />
@@ -51,6 +58,11 @@ export default function App() {
         <Route
           path="/ticket/:trackingCode"
           element={<Ticket />}
+        />
+
+        <Route
+          path="/check-in"
+          element={<CheckIn />}
         />
 
         <Route

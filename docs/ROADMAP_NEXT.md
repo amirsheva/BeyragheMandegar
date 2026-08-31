@@ -102,6 +102,23 @@
 7. CI checks: build, tests and lint before deployment.
 8. Staging environment before production.
 
+
+## P7 — QR ticket and hall check-in
+
+1. Generate a unique signed QR payload for every valid ticket/reservation.
+2. Add a dedicated mobile-first hall-checker page with phone camera access and QR Reader.
+3. Add a `ticket_checker` role with independent authentication; support two, three, or more concurrent checker users.
+4. Validate scans atomically so the same ticket cannot be accepted twice, including near-simultaneous scans by different checker devices.
+5. Return a clear scan result:
+   - valid / admitted
+   - already used
+   - cancelled
+   - wrong performance
+   - invalid or forged QR
+6. Record every scan in an audit log with checker identity, performance, timestamp, result and relevant device/session metadata.
+7. Add manual tracking-code lookup as a fallback when camera/QR scanning is unavailable.
+8. Add an attendance/check-in dashboard for hall operations.
+9. Design offline check-in and controlled synchronization as a later hardening phase.
 ## Recommended execution order
 
 1. Admin authentication + `/api/admin` protection.

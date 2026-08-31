@@ -5,13 +5,16 @@ import {
 } from "react";
 
 import {
+  CalendarDays,
   CheckCircle2,
+  Download,
   RotateCcw,
   Search,
   Ticket,
   Tickets,
   UserCheck,
   Users,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -82,8 +85,10 @@ function reservationLabel(
     return "لغو شده";
   }
 
-  return status ||
-    "نامشخص";
+  return (
+    status ||
+    "نامشخص"
+  );
 }
 
 
@@ -108,36 +113,75 @@ function reservationTone(
 }
 
 
+function sortText(
+  a,
+  b
+) {
+  return String(
+    a || ""
+  ).localeCompare(
+    String(
+      b || ""
+    ),
+    "fa"
+  );
+}
+
+
 export default function ReservationManager() {
   const [
     items,
     setItems,
-  ] = useState([]);
+  ] =
+    useState([]);
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] =
+    useState(true);
 
   const [
     busyId,
     setBusyId,
-  ] = useState(null);
+  ] =
+    useState(null);
+
+  const [
+    exporting,
+    setExporting,
+  ] =
+    useState(false);
 
   const [
     error,
     setError,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     search,
     setSearch,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     filter,
     setFilter,
-  ] = useState("all");
+  ] =
+    useState("all");
+
+  const [
+    performanceFilter,
+    setPerformanceFilter,
+  ] =
+    useState("all");
+
+  const [
+    dateFilter,
+    setDateFilter,
+  ] =
+    useState("all");
 
 
   async function load() {
@@ -155,6 +199,7 @@ export default function ReservationManager() {
             }
           )
         );
+
 
       setItems(
         Array.isArray(
@@ -175,9 +220,12 @@ export default function ReservationManager() {
   }
 
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(
+    () => {
+      load();
+    },
+    []
+  );
 
 
   const confirmedItems =
@@ -250,59 +298,340 @@ export default function ReservationManager() {
     );
 
 
-  const filteredItems =
-    useMemo(() => {
-      const query =
-        normalizeSearch(
-          search
+  const performanceOptions =
+    useMemo(
+      () => {
+        const map =
+          new Map();
+
+        items.forEach(
+          (item) => {
+            const performance =
+              item.performance;
+
+            if (
+              !performance?.id
+            ) {
+              return;
+            }
+
+            if (
+              map.has(
+                performance.id
+              )
+            ) {
+              return;
+            }
+
+            const productionTitle =
+              performance
+                .production
+                ?.title ||
+              "";
+
+            const label =
+              performance.label ||
+              "";
+
+            const date =
+              performance.date ||
+              "";
+
+            map.set(
+              performance.id,
+              {
+                id:
+                  performance.id,
+
+                label:
+                  [
+                    label,
+                    productionTitle,
+                    date,
+                  ]
+                    .filter(
+                      Boolean
+                    )
+                    .join(
+                      " — "
+                    ),
+              }
+            );
+          }
         );
 
-      return items.filter(
-        (item) => {
-          if (
-            filter !==
-              "all" &&
-            item.status !==
-              filter
-          ) {
-            return false;
-          }
 
-          if (!query) {
-            return true;
-          }
+        return [
+          ...map.values(),
+        ].sort(
+          (
+            a,
+            b
+          ) =>
+            sortText(
+              a.label,
+              b.label
+            )
+        );
+      },
+      [
+        items,
+      ]
+    );
 
-          const searchable =
-            [
-              item.name,
-              item.phone,
-              item.tracking_code,
-              item.performance
-                ?.label,
-              item.performance
-                ?.date,
-              item.performance
-                ?.time,
-              item.performance
-                ?.production
-                ?.title,
-            ]
-              .filter(Boolean)
+
+  const dateOptions =
+    useMemo(
+      () =>
+        [
+          ...new Set(
+            items
               .map(
-                normalizeSearch
+                (item) =>
+                  item.performance
+                    ?.date
               )
-              .join(" ");
+              .filter(
+                Boolean
+              )
+          ),
+        ].sort(),
+      [
+        items,
+      ]
+    );
 
-          return searchable.includes(
-            query
+
+  const filteredItems =
+    useMemo(
+      () => {
+        const query =
+          normalizeSearch(
+            search
           );
-        }
+
+
+        return items.filter(
+          (item) => {
+            if (
+              filter !==
+                "all" &&
+              item.status !==
+                filter
+            ) {
+              return false;
+            }
+
+
+            if (
+              performanceFilter !==
+                "all" &&
+              String(
+                item.performance
+                  ?.id ||
+                ""
+              ) !==
+                performanceFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              dateFilter !==
+                "all" &&
+              String(
+                item.performance
+                  ?.date ||
+                ""
+              ) !==
+                dateFilter
+            ) {
+              return false;
+            }
+
+
+            if (!query) {
+              return true;
+            }
+
+
+            const searchable =
+              [
+                item.name,
+                item.phone,
+                item.tracking_code,
+                item.performance
+                  ?.label,
+                item.performance
+                  ?.date,
+                item.performance
+                  ?.time,
+                item.performance
+                  ?.production
+                  ?.title,
+              ]
+                .filter(
+                  Boolean
+                )
+                .map(
+                  normalizeSearch
+                )
+                .join(
+                  " "
+                );
+
+
+            return searchable.includes(
+              query
+            );
+          }
+        );
+      },
+      [
+        items,
+        search,
+        filter,
+        performanceFilter,
+        dateFilter,
+      ]
+    );
+
+
+  const hasActiveFilters =
+    Boolean(
+      search.trim()
+    ) ||
+    filter !==
+      "all" ||
+    performanceFilter !==
+      "all" ||
+    dateFilter !==
+      "all";
+
+
+  function clearFilters() {
+    setSearch("");
+    setFilter("all");
+    setPerformanceFilter(
+      "all"
+    );
+    setDateFilter(
+      "all"
+    );
+  }
+
+
+  async function exportVisible() {
+    if (
+      filteredItems.length ===
+      0
+    ) {
+      return;
+    }
+
+
+    setExporting(
+      true
+    );
+
+    setError("");
+
+
+    try {
+      const response =
+        await fetch(
+          "/api/admin/reservations/export",
+          {
+            method:
+              "POST",
+
+            credentials:
+              "include",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                ids:
+                  filteredItems.map(
+                    (item) =>
+                      item.id
+                  ),
+              }),
+          }
+        );
+
+
+      if (
+        !response.ok
+      ) {
+        const data =
+          await response
+            .json()
+            .catch(
+              () => ({})
+            );
+
+        throw new Error(
+          data.message ||
+          "خطا در ساخت خروجی رزروها"
+        );
+      }
+
+
+      const blob =
+        await response.blob();
+
+      const date =
+        new Date()
+          .toISOString()
+          .slice(
+            0,
+            10
+          );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const anchor =
+        document.createElement(
+          "a"
+        );
+
+      anchor.href =
+        url;
+
+      anchor.download =
+        `beyragh-reservations-${date}.csv`;
+
+      document.body.appendChild(
+        anchor
       );
-    }, [
-      items,
-      search,
-      filter,
-    ]);
+
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(
+        url
+      );
+
+    } catch (err) {
+      setError(
+        err.message
+      );
+
+    } finally {
+      setExporting(
+        false
+      );
+    }
+  }
 
 
   async function changeStatus(
@@ -314,6 +643,7 @@ export default function ReservationManager() {
     );
 
     setError("");
+
 
     try {
       await readJson(
@@ -338,6 +668,7 @@ export default function ReservationManager() {
           }
         )
       );
+
 
       await load();
 
@@ -365,7 +696,7 @@ export default function ReservationManager() {
           Ticket
         }
         title="مدیریت رزروها"
-        description="مشاهده، جستجو و مدیریت رزروهای ثبت‌شده برای اجراهای بیرق ماندگار"
+        description="جست‌وجو، فیلتر، خروجی و مدیریت رزروهای ثبت‌شده برای اجراهای بیرق ماندگار"
       />
 
 
@@ -445,7 +776,6 @@ export default function ReservationManager() {
 
 
       <section className="reservation-toolbar">
-
         <label className="reservation-search">
           <Search
             size={19}
@@ -466,13 +796,12 @@ export default function ReservationManager() {
                     .value
                 )
             }
-            placeholder="جستجو در نام، بخشی از موبایل، کد پیگیری یا اجرا..."
+            placeholder="جست‌وجو در نام، موبایل Mask شده، کد پیگیری یا اجرا..."
           />
         </label>
 
 
         <div className="reservation-filters">
-
           <FilterButton
             active={
               filter ===
@@ -520,7 +849,156 @@ export default function ReservationManager() {
               cancelledItems.length
             }
           />
+        </div>
+      </section>
 
+
+      <section className="reservation-advanced-toolbar">
+        <label className="reservation-select-field">
+          <span>
+            اجرا
+          </span>
+
+          <select
+            value={
+              performanceFilter
+            }
+            onChange={
+              (event) =>
+                setPerformanceFilter(
+                  event
+                    .target
+                    .value
+                )
+            }
+          >
+            <option value="all">
+              همه اجراها
+            </option>
+
+            {performanceOptions.map(
+              (item) => (
+                <option
+                  key={
+                    item.id
+                  }
+                  value={
+                    item.id
+                  }
+                >
+                  {
+                    item.label
+                  }
+                </option>
+              )
+            )}
+          </select>
+        </label>
+
+
+        <label className="reservation-select-field">
+          <span>
+            تاریخ
+          </span>
+
+          <select
+            value={
+              dateFilter
+            }
+            onChange={
+              (event) =>
+                setDateFilter(
+                  event
+                    .target
+                    .value
+                )
+            }
+          >
+            <option value="all">
+              همه تاریخ‌ها
+            </option>
+
+            {dateOptions.map(
+              (date) => (
+                <option
+                  key={
+                    date
+                  }
+                  value={
+                    date
+                  }
+                >
+                  {toFaDigits(
+                    date
+                  )}
+                </option>
+              )
+            )}
+          </select>
+        </label>
+
+
+        <div className="reservation-filter-summary">
+          <CalendarDays
+            size={18}
+          />
+
+          <span>
+            نمایش{" "}
+            <strong>
+              {faNumber(
+                filteredItems.length
+              )}
+            </strong>
+            {" "}از{" "}
+            <strong>
+              {faNumber(
+                items.length
+              )}
+            </strong>
+            {" "}رزرو
+          </span>
+        </div>
+
+
+        <div className="reservation-toolbar-actions">
+          <button
+            type="button"
+            disabled={
+              !hasActiveFilters
+            }
+            onClick={
+              clearFilters
+            }
+            className="reservation-clear-button"
+          >
+            <X
+              size={17}
+            />
+            پاک کردن فیلترها
+          </button>
+
+
+          <button
+            type="button"
+            disabled={
+              exporting ||
+              filteredItems.length ===
+                0
+            }
+            onClick={
+              exportVisible
+            }
+            className="reservation-export-button"
+          >
+            <Download
+              size={18}
+            />
+
+            {exporting
+              ? "در حال ساخت خروجی..."
+              : "خروجی CSV"}
+          </button>
         </div>
       </section>
 
@@ -546,55 +1024,43 @@ export default function ReservationManager() {
             items.length ===
             0
               ? "پس از ثبت اولین رزرو، اطلاعات مخاطب و بلیت در این صفحه نمایش داده می‌شود."
-              : "عبارت جستجو یا فیلتر انتخاب‌شده را تغییر دهید."
+              : "عبارت جست‌وجو یا فیلترهای انتخاب‌شده را تغییر دهید."
           }
         />
 
       ) : (
         <section className="reservation-table-card">
-
           <div className="reservation-table-scroll">
-
             <table className="reservation-table">
-
               <thead>
                 <tr>
                   <th>
                     ردیف
                   </th>
-
                   <th>
                     مخاطب
                   </th>
-
                   <th>
                     موبایل
                   </th>
-
                   <th>
                     اجرا
                   </th>
-
                   <th>
                     تاریخ
                   </th>
-
                   <th>
                     ساعت
                   </th>
-
                   <th>
                     بلیت
                   </th>
-
                   <th>
                     کد پیگیری
                   </th>
-
                   <th>
                     وضعیت
                   </th>
-
                   <th>
                     عملیات
                   </th>
@@ -611,6 +1077,7 @@ export default function ReservationManager() {
                     const cancelled =
                       item.status ===
                       "cancelled";
+
 
                     return (
                       <tr
@@ -725,11 +1192,11 @@ export default function ReservationManager() {
                           dir="ltr"
                           className="reservation-tracking-cell"
                         >
-                          <code>
-                            {toFaDigits(
-                              item.tracking_code ||
-                              "—"
-                            )}
+                          <code
+                            data-keep-latin-digits="true"
+                          >
+                            {item.tracking_code ||
+                              "—"}
                           </code>
                         </td>
 
@@ -751,7 +1218,6 @@ export default function ReservationManager() {
 
                         <td>
                           <div className="reservation-actions">
-
                             {item.status ===
                             "confirmed" ? (
                               <button
@@ -803,7 +1269,6 @@ export default function ReservationManager() {
                                   : "فعال‌سازی مجدد"}
                               </button>
                             )}
-
                           </div>
                         </td>
                       </tr>
@@ -811,11 +1276,8 @@ export default function ReservationManager() {
                   }
                 )}
               </tbody>
-
             </table>
-
           </div>
-
         </section>
       )}
     </div>
@@ -840,9 +1302,7 @@ function FilterButton({
         active
           ? "is-active"
           : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      ].join(" ")}
     >
       <span>
         {label}

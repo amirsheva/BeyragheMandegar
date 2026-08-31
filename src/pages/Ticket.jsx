@@ -74,6 +74,300 @@ function DetailItem({
 }
 
 
+
+
+function TicketQrList({
+  trackingCode,
+  confirmed,
+}) {
+  const [
+    items,
+    setItems,
+  ] =
+    useState([]);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
+
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
+
+
+  useEffect(
+    () => {
+      const controller =
+        new AbortController();
+
+
+      async function load() {
+        try {
+          setLoading(
+            true
+          );
+
+          setError(
+            ""
+          );
+
+          const response =
+            await fetch(
+              `/api/ticketing/reservations/${encodeURIComponent(
+                trackingCode
+              )}/qr`,
+              {
+                signal:
+                  controller.signal,
+
+                cache:
+                  "no-store",
+              }
+            );
+
+          const data =
+            await response
+              .json()
+              .catch(
+                () => ({})
+              );
+
+          if (
+            !response.ok
+          ) {
+            throw new Error(
+              data.message ||
+              "QR بلیت در دسترس نیست."
+            );
+          }
+
+          setItems(
+            Array.isArray(
+              data.tickets
+            )
+              ? data.tickets
+              : []
+          );
+
+        } catch (err) {
+          if (
+            err?.name ===
+            "AbortError"
+          ) {
+            return;
+          }
+
+          setError(
+            err?.message ||
+            "خطا در دریافت QR بلیت."
+          );
+
+        } finally {
+          if (
+            !controller
+              .signal
+              .aborted
+          ) {
+            setLoading(
+              false
+            );
+          }
+        }
+      }
+
+
+      load();
+
+      return () =>
+        controller.abort();
+
+    },
+    [
+      trackingCode,
+    ]
+  );
+
+
+  if (
+    loading
+  ) {
+    return (
+      <div
+        className="
+          mt-7
+          rounded-[22px]
+          border
+          border-white/[0.06]
+          bg-white/[0.02]
+          p-5
+          text-center
+          text-xs
+          text-white/40
+        "
+      >
+        در حال آماده‌سازی QR بلیت‌ها...
+      </div>
+    );
+  }
+
+
+  if (
+    error ||
+    items.length === 0
+  ) {
+    return (
+      <div
+        className="
+          mt-7
+          rounded-[22px]
+          border
+          border-[#5d352e]
+          bg-[#130d0b]
+          p-5
+          text-center
+          text-xs
+          leading-6
+          text-[#b9766a]
+        "
+      >
+        {error ||
+          "QR بلیت در دسترس نیست."}
+      </div>
+    );
+  }
+
+
+  return (
+    <section
+      className="
+        mt-7
+        rounded-[24px]
+        border
+        border-white/[0.07]
+        bg-[#100c0b]
+        p-5
+        sm:p-6
+      "
+    >
+      <div
+        className="
+          text-sm
+          font-black
+          text-[#e7d9d2]
+        "
+      >
+        QR ورود
+      </div>
+
+      <p
+        className="
+          mt-2
+          text-xs
+          leading-6
+          text-white/40
+        "
+      >
+        برای هر بلیت یک QR مستقل صادر شده است. هر QR فقط یک‌بار در ورودی سالن قابل استفاده است.
+      </p>
+
+
+      <div
+        className="
+          mt-5
+          grid
+          gap-4
+          sm:grid-cols-2
+        "
+      >
+        {items.map(
+          (
+            item,
+            index
+          ) => (
+            <article
+              key={
+                item.ordinal
+              }
+              className="
+                rounded-[22px]
+                border
+                border-[#51342e]
+                bg-[#17100e]
+                p-4
+                text-center
+              "
+            >
+              <div
+                className="
+                  text-xs
+                  font-black
+                  text-[#d7a89d]
+                "
+              >
+                بلیت{" "}
+                {item.ordinal}
+                {" "}از{" "}
+                {items.length}
+              </div>
+
+              <div
+                className="
+                  mx-auto
+                  mt-4
+                  max-w-[230px]
+                  overflow-hidden
+                  rounded-2xl
+                  bg-[#fffaf7]
+                  p-2
+                "
+              >
+                <img
+                  src={
+                    item.qrDataUrl
+                  }
+                  alt={`QR بلیت ${
+                    index + 1
+                  }`}
+                  className="
+                    block
+                    h-auto
+                    w-full
+                  "
+                />
+              </div>
+
+              <div
+                className={`
+                  mt-3
+                  text-[11px]
+                  font-black
+                  ${
+                    item.checkedIn
+                      ? "text-[#d47b6f]"
+                      : confirmed
+                        ? "text-[#70b48a]"
+                        : "text-white/35"
+                  }
+                `}
+              >
+                {item.checkedIn
+                  ? "استفاده شده"
+                  : confirmed
+                    ? "آماده پذیرش"
+                    : "رزرو نامعتبر"}
+              </div>
+            </article>
+          )
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function TicketPage() {
   const {
     trackingCode,
@@ -731,6 +1025,15 @@ export default function TicketPage() {
             </div>
           )}
 
+
+          <TicketQrList
+            trackingCode={
+              ticket.trackingCode
+            }
+            confirmed={
+              confirmed
+            }
+          />
 
           <div
             className="

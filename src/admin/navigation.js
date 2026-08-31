@@ -20,6 +20,14 @@ export const adminNavigation = [
     path: "/admin/reservations",
   },
   {
+    title: "مسئولان سالن",
+    path: "/admin/checkers",
+  },
+  {
+    title: "پذیرش سالن",
+    path: "/admin/checkin",
+  },
+  {
     title: "اخبار",
     path: "/admin/news",
   },
