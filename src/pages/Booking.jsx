@@ -690,7 +690,7 @@ export default function Booking() {
       alreadyVerified
     ) {
       setError("");
-      setStep(3);
+      setStep(4);
 
       return;
     }
@@ -705,12 +705,62 @@ export default function Booking() {
 
 
     if (
-      !challengeMatches
+      challengeMatches
     ) {
+      setError("");
+      setStep(3);
+
+      return;
+    }
+
+
+    const requested =
       await requestOtp(
         phone
       );
 
+
+    if (
+      requested
+    ) {
+      setStep(3);
+    }
+  }
+
+
+  async function nextFromOtpStep() {
+    const validated =
+      validateStepTwo();
+
+
+    if (!validated) {
+      setStep(2);
+      return;
+    }
+
+
+    const {
+      phone,
+    } =
+      validated;
+
+
+    const challengeMatches =
+      Boolean(
+        otpChallengeId
+      ) &&
+      otpPhone ===
+        phone;
+
+
+    if (
+      !challengeMatches
+    ) {
+      setError(
+        "برای این شماره موبایل کد تأیید فعالی وجود ندارد. دوباره کد دریافت کنید."
+      );
+
+      setStep(2);
       return;
     }
 
@@ -724,10 +774,9 @@ export default function Booking() {
     if (
       verified
     ) {
-      setStep(3);
+      setStep(4);
     }
   }
-
 
   async function resendOtp() {
     const validated =
@@ -827,6 +876,18 @@ export default function Booking() {
           );
 
           setVerifiedPhone(
+            ""
+          );
+
+          setOtpChallengeId(
+            ""
+          );
+
+          setOtpPhone(
+            ""
+          );
+
+          setOtpCode(
             ""
           );
 
@@ -1098,7 +1159,7 @@ export default function Booking() {
               p-5
               sm:p-7
               ${
-                step === 3
+                step === 4
                   ? "lg:col-span-2 booking-final-shell"
                   : ""
               }
@@ -1139,7 +1200,8 @@ export default function Booking() {
 
 
             {/* BOOKING_MOBILE_READONLY_SUMMARY */}
-            {step === 2 &&
+            {(step === 2 ||
+              step === 3) &&
             selected && (
               <div
                 className="
@@ -1178,29 +1240,23 @@ export default function Booking() {
                 onNext={
                   nextFromStepTwo
                 }
-                otpChallengeActive={
-                  Boolean(
-                    otpChallengeId
-                  ) &&
-                  otpPhone ===
-                    normalizeDigits(
-                      form.phone
-                    ).replace(
-                      /\D/g,
-                      ""
-                    )
+                requesting={
+                  otpRequesting
                 }
-                otpVerified={
-                  Boolean(
-                    verificationToken
-                  ) &&
-                  verifiedPhone ===
-                    normalizeDigits(
-                      form.phone
-                    ).replace(
-                      /\D/g,
-                      ""
-                    )
+              />
+            )}
+
+
+            {step ===
+              3 && (
+              <OtpStep
+                phone={
+                  normalizeDigits(
+                    form.phone
+                  ).replace(
+                    /\D/g,
+                    ""
+                  )
                 }
                 otpCode={
                   otpCode
@@ -1220,6 +1276,14 @@ export default function Booking() {
                 onResend={
                   resendOtp
                 }
+                onBack={() =>
+                  setStep(
+                    2
+                  )
+                }
+                onNext={
+                  nextFromOtpStep
+                }
                 devOtpCode={
                   devOtpCode
                 }
@@ -1228,7 +1292,7 @@ export default function Booking() {
 
 
             {step ===
-              3 && (
+              4 && (
               <StepThree
                 selected={
                   selected
@@ -1282,7 +1346,7 @@ export default function Booking() {
             "
           >
                         {/* FINAL_NORMAL_SUMMARY_GUARD */}
-            {step !== 3 && (
+            {step !== 4 && (
 <BookingSummary
               selected={
                 selected
@@ -1323,6 +1387,11 @@ function Stepper({
     },
     {
       id: 3,
+      title:
+        "تأیید موبایل",
+    },
+    {
+      id: 4,
       title:
         "تأیید نهایی",
     },
@@ -1424,7 +1493,7 @@ function Stepper({
           mt-1
           mb-7
           hidden
-          grid-cols-3
+          grid-cols-4
           gap-4
           sm:grid
         "
@@ -1463,7 +1532,6 @@ function Stepper({
                   }
                 `}
               >
-                {/* STEP_NUMBER_BEFORE_TITLE_V5 */}
                 <div
                   className={`
                     flex h-8 w-8
@@ -1720,15 +1788,7 @@ function StepTwo({
   setForm,
   onBack,
   onNext,
-  otpChallengeActive,
-  otpVerified,
-  otpCode,
-  setOtpCode,
-  otpRequesting,
-  otpVerifying,
-  resendAfter,
-  onResend,
-  devOtpCode,
+  requesting,
 }) {
   function update(
     key,
@@ -1743,14 +1803,6 @@ function StepTwo({
           value,
       })
     );
-
-
-    if (
-      key ===
-      "phone"
-    ) {
-      setOtpCode("");
-    }
   }
 
 
@@ -1838,217 +1890,6 @@ function StepTwo({
           placeholder="۱۰ رقم"
           inputMode="numeric"
         />
-
-
-        {otpVerified && (
-          <div
-            className="
-              rounded-[18px]
-              border
-              border-[#315a40]
-              bg-[#0c1710]
-              px-4 py-4
-            "
-          >
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-              <CircleCheck
-                size={21}
-                className="
-                  shrink-0
-                  text-[#6fb687]
-                "
-              />
-
-              <div>
-                <div
-                  className="
-                    text-[14px]
-                    font-black
-                    text-[#dce8df]
-                  "
-                >
-                  شماره موبایل تأیید شد
-                </div>
-
-                <div
-                  className="
-                    mt-1
-                    text-[12px]
-                    text-[#7f9687]
-                  "
-                >
-                  می‌توانید وارد مرحله مرور و ثبت نهایی شوید.
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-        {otpChallengeActive &&
-        !otpVerified && (
-          <div
-            className="
-              rounded-[20px]
-              border
-              border-[#634239]
-              bg-[#100b0a]
-              p-4
-            "
-          >
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-              <div
-                className="
-                  flex h-10 w-10
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  border
-                  border-[#70483f]
-                  bg-[#21100e]
-                  text-[#b76557]
-                "
-              >
-                <KeyRound
-                  size={18}
-                />
-              </div>
-
-              <div>
-                <div
-                  className="
-                    text-[14px]
-                    font-black
-                    text-[#dfd1c8]
-                  "
-                >
-                  کد تأیید ارسال شد
-                </div>
-
-                <div
-                  className="
-                    mt-1
-                    text-[12px]
-                    leading-6
-                    text-[#857b74]
-                  "
-                >
-                  کد ۶ رقمی ارسال‌شده به شماره موبایل را وارد کنید.
-                </div>
-              </div>
-            </div>
-
-
-            <div
-              className="
-                mt-4
-              "
-            >
-              <Field
-                icon={
-                  KeyRound
-                }
-                label="کد تأیید"
-                value={
-                  otpCode
-                }
-                onChange={(
-                  event
-                ) =>
-                  setOtpCode(
-                    normalizeDigits(
-                      event
-                        .target
-                        .value
-                    )
-                      .replace(
-                        /\D/g,
-                        ""
-                      )
-                      .slice(
-                        0,
-                        6
-                      )
-                  )
-                }
-                placeholder="۶ رقم"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-              />
-            </div>
-
-
-            {devOtpCode && (
-              <div
-                className="
-                  mt-3
-                  rounded-[14px]
-                  border
-                  border-[#6b5730]
-                  bg-[#201907]
-                  px-3 py-2
-                  text-[12px]
-                  font-bold
-                  text-[#d4b75b]
-                "
-              >
-                حالت توسعه — کد تست:
-                {" "}
-                <span
-                  dir="ltr"
-                  data-keep-latin-digits="true"
-                  className="
-                    font-mono
-                    text-[13px]
-                  "
-                >
-                  {devOtpCode}
-                </span>
-              </div>
-            )}
-
-
-            <button
-              type="button"
-              disabled={
-                resendAfter > 0 ||
-                otpRequesting
-              }
-              onClick={
-                onResend
-              }
-              className="
-                mt-4
-                text-[12px]
-                font-black
-                text-[#b36b5e]
-                transition
-                hover:text-[#d88d7e]
-                disabled:cursor-not-allowed
-                disabled:text-[#5e5651]
-              "
-            >
-              {resendAfter > 0
-                ? `ارسال مجدد تا ${fa(
-                    resendAfter
-                  )} ثانیه دیگر`
-                : "ارسال مجدد کد"}
-            </button>
-          </div>
-        )}
       </div>
 
 
@@ -2072,26 +1913,243 @@ function StepTwo({
             onNext
           }
           disabled={
-            otpRequesting ||
-            otpVerifying
+            requesting
           }
           compact
         >
-          {otpRequesting
+          {requesting
             ? "در حال ارسال کد..."
-            : otpVerifying
-              ? "در حال تأیید..."
-              : otpVerified
-                ? "مرور رزرو"
-                : otpChallengeActive
-                  ? "تأیید و مرور رزرو"
-                  : "دریافت کد تأیید"}
+            : "ادامه به تأیید موبایل"}
         </PrimaryButton>
       </div>
     </>
   );
 }
 
+
+function OtpStep({
+  phone,
+  otpCode,
+  setOtpCode,
+  otpRequesting,
+  otpVerifying,
+  resendAfter,
+  onResend,
+  onBack,
+  onNext,
+  devOtpCode,
+}) {
+  return (
+    <>
+      <SectionTitle
+        icon={
+          KeyRound
+        }
+        title="تأیید شماره موبایل"
+        description={`کد ۶ رقمی ارسال‌شده به ${fa(
+          phone
+        )} را وارد کنید.`}
+      />
+
+
+      <div
+        className="
+          mt-6
+          rounded-[22px]
+          border
+          border-[#634239]
+          bg-[#100b0a]
+          p-5
+          sm:p-6
+        "
+      >
+        <div
+          className="
+            flex
+            items-start
+            gap-3
+          "
+        >
+          <div
+            className="
+              flex h-11 w-11
+              shrink-0
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-[#70483f]
+              bg-[#21100e]
+              text-[#b76557]
+            "
+          >
+            <KeyRound
+              size={19}
+            />
+          </div>
+
+
+          <div>
+            <div
+              className="
+                text-[15px]
+                font-black
+                text-[#dfd1c8]
+              "
+            >
+              کد تأیید ارسال شد
+            </div>
+
+            <div
+              className="
+                mt-1
+                text-[12px]
+                leading-6
+                text-[#857b74]
+              "
+            >
+              برای ادامه رزرو، شماره موبایل رزروکننده باید تأیید شود.
+            </div>
+          </div>
+        </div>
+
+
+        <div
+          className="
+            mt-5
+          "
+        >
+          <Field
+            icon={
+              KeyRound
+            }
+            label="کد تأیید"
+            value={
+              otpCode
+            }
+            onChange={(
+              event
+            ) =>
+              setOtpCode(
+                normalizeDigits(
+                  event
+                    .target
+                    .value
+                )
+                  .replace(
+                    /\D/g,
+                    ""
+                  )
+                  .slice(
+                    0,
+                    6
+                  )
+              )
+            }
+            placeholder="۶ رقم"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+          />
+        </div>
+
+
+        {devOtpCode && (
+          <div
+            className="
+              mt-3
+              rounded-[14px]
+              border
+              border-[#6b5730]
+              bg-[#201907]
+              px-3 py-2
+              text-[12px]
+              font-bold
+              text-[#d4b75b]
+            "
+          >
+            حالت توسعه — کد تست:
+            {" "}
+            <span
+              dir="ltr"
+              data-keep-latin-digits="true"
+              className="
+                font-mono
+                text-[13px]
+              "
+            >
+              {devOtpCode}
+            </span>
+          </div>
+        )}
+
+
+        <button
+          type="button"
+          disabled={
+            resendAfter > 0 ||
+            otpRequesting
+          }
+          onClick={
+            onResend
+          }
+          className="
+            mt-4
+            text-[12px]
+            font-black
+            text-[#b36b5e]
+            transition
+            hover:text-[#d88d7e]
+            disabled:cursor-not-allowed
+            disabled:text-[#5e5651]
+          "
+        >
+          {resendAfter > 0
+            ? `ارسال مجدد تا ${fa(
+                resendAfter
+              )} ثانیه دیگر`
+            : otpRequesting
+              ? "در حال ارسال مجدد..."
+              : "ارسال مجدد کد"}
+        </button>
+      </div>
+
+
+      <div
+        className="
+          mt-7
+          flex
+          gap-3
+        "
+      >
+        <SecondaryButton
+          onClick={
+            onBack
+          }
+          disabled={
+            otpVerifying
+          }
+        >
+          ویرایش اطلاعات
+        </SecondaryButton>
+
+        <PrimaryButton
+          onClick={
+            onNext
+          }
+          disabled={
+            otpVerifying ||
+            otpRequesting
+          }
+          compact
+        >
+          {otpVerifying
+            ? "در حال تأیید..."
+            : "تأیید کد و ادامه"}
+        </PrimaryButton>
+      </div>
+    </>
+  );
+}
 
 function StepThree({
   selected,

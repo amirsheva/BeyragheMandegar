@@ -7,6 +7,45 @@ let initPromise = null;
 
 
 export function ensureAuditTable() {
+  if (
+    method === "POST" &&
+    /\/checkers(?:\/|$)/.test(path) &&
+    !/\/reset-password(?:\/|$)/.test(path)
+  ) {
+    return {
+      action:
+        "checker.create",
+      entityType:
+        "ticket_checker",
+    };
+  }
+
+
+  if (
+    method === "PATCH" &&
+    /\/checkers\/\d+(?:\/|$)/.test(path)
+  ) {
+    return {
+      action:
+        "checker.update",
+      entityType:
+        "ticket_checker",
+    };
+  }
+
+
+  if (
+    method === "POST" &&
+    /\/checkers\/\d+\/reset-password(?:\/|$)/.test(path)
+  ) {
+    return {
+      action:
+        "checker.password.reset",
+      entityType:
+        "ticket_checker",
+    };
+  }
+
   if (!initPromise) {
     initPromise =
       sequelize.query(`
@@ -34,6 +73,18 @@ function identifyAction(
   method,
   path
 ) {
+  if (
+    method === "POST" &&
+    /\/reservations\/export(?:\/|$)/.test(path)
+  ) {
+    return {
+      action:
+        "reservation.export",
+      entityType:
+        "reservation",
+    };
+  }
+
   if (
     method === "PATCH" &&
     /\/reservations\/\d+\/status(?:\/|$)/.test(path)

@@ -8,6 +8,8 @@ import Dashboard from "./Dashboard";
 import ShowManager from "./ShowManager";
 import PerformanceManager from "./PerformanceManager";
 import ReservationManager from "./ReservationManager";
+import CheckerManager from "./CheckerManager";
+import CheckinDashboard from "./CheckinDashboard";
 import NewsManager from "./NewsManager";
 import VenueManager from "./VenueManager";
 import SmsManager from "./SmsManager";
@@ -142,6 +144,18 @@ export default function AdminApp() {
     case "/admin/reservations":
       page =
         <ReservationManager />;
+      break;
+
+
+    case "/admin/checkin":
+      page =
+        <CheckinDashboard />;
+      break;
+
+
+    case "/admin/checkers":
+      page =
+        <CheckerManager />;
       break;
 
     case "/admin/news":

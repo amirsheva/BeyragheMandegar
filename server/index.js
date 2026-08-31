@@ -52,6 +52,34 @@ import {
   consumeReservationOtpGrant,
 } from "./otp-service.js";
 
+import customerRouter
+  from "./customer-routes.js";
+
+import {
+  assertCustomerPortalConfigured,
+  customerPhoneLookup,
+  ensureCustomerPortalSchema,
+  isCustomerPortalEnabled,
+} from "./customer-auth.js";
+
+
+import {
+  checkerRouter,
+} from "./checker-routes.js";
+
+import {
+  ticketingRouter,
+} from "./ticketing-routes.js";
+
+import {
+  backfillAdmissionTickets,
+  ensureCheckinSchema,
+} from "./checkin-service.js";
+
+import {
+  ensureCheckerUserSchema,
+  migrateEnvCheckerUsers,
+} from "./checker-user-service.js";
 
 function createTrackingCode() {
   const stamp =
@@ -95,10 +123,28 @@ function normalizeDigits(value) {
 async function startServer() {
   assertAuthConfigured();
   assertOtpConfigured();
+  assertCustomerPortalConfigured();
 
   const app = express();
 
   await ensureOtpSchema();
+
+  await ensureCheckinSchema();
+
+  await backfillAdmissionTickets();
+
+  await ensureCheckerUserSchema();
+
+  const checkerMigration =
+    await migrateEnvCheckerUsers();
+
+  if (
+    checkerMigration.migrated > 0
+  ) {
+    console.log(
+      `✅ Migrated ${checkerMigration.migrated} ticket checker account(s) from env seed to DB.`
+    );
+  }
 
   app.use(
     helmet({
@@ -231,6 +277,8 @@ async function startServer() {
 
   await setupAdmin(app);
 
+  await ensureCustomerPortalSchema();
+
 
   // RESERVATION_RATE_LIMIT_V1
   const reservationLimiter =
@@ -275,6 +323,23 @@ async function startServer() {
   app.use(
     "/api/otp",
     otpRouter
+  );
+
+
+  app.use(
+    "/api/ticketing",
+    ticketingRouter
+  );
+
+
+  app.use(
+    "/api/checker",
+    checkerRouter
+  );
+
+  app.use(
+    "/api/customer",
+    customerRouter
   );
 
 
@@ -944,6 +1009,13 @@ async function startServer() {
 
             phone:
               cleanPhone,
+
+            phone_lookup:
+              isCustomerPortalEnabled()
+                ? customerPhoneLookup(
+                    cleanPhone
+                  )
+                : null,
 
             national_id: normalizedNationalId,
 

@@ -8,7 +8,9 @@ import {
   MapPin,
   MessageSquare,
   ShieldCheck,
+  ScanLine,
   Ticket,
+  UserRoundCog,
 } from "lucide-react";
 
 import {
@@ -51,8 +53,22 @@ const meta = {
       "مدیریت مخاطبان و بلیت‌ها",
     icon:
       Ticket,
+  UserRoundCog,
   },
 
+  "/admin/checkin": {
+    subtitle:
+      "کنترل ورود و آمار پذیرش",
+    icon:
+      ScanLine,
+  },
+
+  "/admin/checkers": {
+    subtitle:
+      "حساب‌ها و دسترسی پذیرش",
+    icon:
+      UserRoundCog,
+  },
   "/admin/news": {
     subtitle:
       "اطلاعیه‌ها و محتوا",
@@ -171,6 +187,15 @@ export default function AdminSidebar({
         `${base}/booking`,
       icon:
         Ticket,
+  UserRoundCog,
+    },
+    {
+      title:
+        "کنترل بلیت",
+      href:
+        `${base}/check-in`,
+      icon:
+        ScanLine,
     },
   ];
 

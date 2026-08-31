@@ -98,6 +98,18 @@ const env = {
 
   SMS_TRANSACTIONAL_ENABLED:
     "false",
+
+  OTP_RESERVATION_REQUIRED:
+    "false",
+
+  OTP_PROVIDER:
+    "noop",
+
+  OTP_DEV_EXPOSE_CODE:
+    "true",
+
+  CUSTOMER_PORTAL_ENABLED:
+    "false",
 };
 
 
