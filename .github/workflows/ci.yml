@@ -5,21 +5,20 @@ on:
     branches:
       - main
       - develop
+      - "release/**"
 
   pull_request:
     branches:
       - main
       - develop
-
+      - "release/**"
 
 permissions:
   contents: read
 
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     timeout-minutes: 15
 
     steps:
@@ -64,5 +63,6 @@ jobs:
 
       - name: Ticket checker management test
         run: npm run test:checkers
+
       - name: Backup and restore test
         run: npm run test:backup
