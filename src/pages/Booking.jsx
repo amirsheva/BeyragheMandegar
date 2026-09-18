@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -8,6 +9,12 @@ import {
   Link,
   useSearchParams,
 } from "react-router-dom";
+
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "framer-motion";
 
 import {
   CalendarDays,
@@ -196,6 +203,96 @@ export default function Booking() {
     devOtpCode,
     setDevOtpCode,
   ] = useState("");
+
+
+  const bookingStageRef =
+    useRef(null);
+
+  const reduceBookingMotion =
+    useReducedMotion();
+
+  const [
+    isMobileBookingFlow,
+    setIsMobileBookingFlow,
+  ] = useState(false);
+
+
+  useEffect(() => {
+    const media =
+      window.matchMedia(
+        "(max-width: 639px)"
+      );
+
+    const sync = () => {
+      setIsMobileBookingFlow(
+        media.matches
+      );
+    };
+
+    sync();
+
+    if (
+      media.addEventListener
+    ) {
+      media.addEventListener(
+        "change",
+        sync
+      );
+
+      return () => {
+        media.removeEventListener(
+          "change",
+          sync
+        );
+      };
+    }
+
+    media.addListener(sync);
+
+    return () => {
+      media.removeListener(sync);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    if (
+      !isMobileBookingFlow ||
+      step === 1
+    ) {
+      return undefined;
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          bookingStageRef
+            .current
+            ?.scrollIntoView({
+              behavior:
+                reduceBookingMotion
+                  ? "auto"
+                  : "smooth",
+              block:
+                "start",
+            });
+        },
+        reduceBookingMotion
+          ? 0
+          : 90
+      );
+
+    return () => {
+      window.clearTimeout(
+        timer
+      );
+    };
+  }, [
+    step,
+    isMobileBookingFlow,
+    reduceBookingMotion,
+  ]);
+
 
 
   useEffect(() => {
@@ -1151,7 +1248,11 @@ export default function Booking() {
           "
         >
           <section
+            ref={
+              bookingStageRef
+            }
             className={`
+              scroll-mt-24
               rounded-[28px]
               border
               border-[#4d3530]
@@ -1165,6 +1266,56 @@ export default function Booking() {
               }
             `}
           >
+            <AnimatePresence
+              mode="wait"
+              initial={false}
+            >
+              <motion.div
+                key={`booking-mobile-step-${step}`}
+                initial={
+                  isMobileBookingFlow &&
+                  !reduceBookingMotion
+                    ? {
+                        opacity: 0,
+                        y: 26,
+                        scale: 0.992,
+                      }
+                    : false
+                }
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                }}
+                exit={
+                  isMobileBookingFlow &&
+                  !reduceBookingMotion
+                    ? {
+                        opacity: 0,
+                        y: -14,
+                        scale: 0.995,
+                      }
+                    : {
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                      }
+                }
+                transition={{
+                  duration:
+                    isMobileBookingFlow &&
+                    !reduceBookingMotion
+                      ? 0.24
+                      : 0,
+                  ease: [
+                    0.22,
+                    1,
+                    0.36,
+                    1,
+                  ],
+                }}
+              >
+
             {step ===
               1 && (
               <StepOne
@@ -1316,6 +1467,10 @@ export default function Booking() {
                 }
               />
             )}
+
+
+              </motion.div>
+            </AnimatePresence>
 
 
             {error && (
@@ -1595,6 +1750,104 @@ function StepOne({
   remaining,
   onNext,
 }) {
+  const mobileSummaryRef =
+    useRef(null);
+
+  const transitionTimerRef =
+    useRef(null);
+
+  const reduceMotion =
+    useReducedMotion();
+
+  const [
+    mobileSummaryId,
+    setMobileSummaryId,
+  ] = useState(
+    () =>
+      String(
+        selectedId || ""
+      )
+  );
+
+  useEffect(
+    () => () => {
+      if (
+        transitionTimerRef.current
+      ) {
+        window.clearTimeout(
+          transitionTimerRef.current
+        );
+      }
+    },
+    []
+  );
+
+  function handleSelect(
+    show
+  ) {
+    onSelect(show);
+
+    const isMobile =
+      typeof window !==
+        "undefined" &&
+      window.matchMedia(
+        "(max-width: 639px)"
+      ).matches;
+
+    if (!isMobile) {
+      return;
+    }
+
+    const nextId =
+      String(show.id);
+
+    /*
+     * Give the selected card a very short
+     * tactile/visual confirmation before
+     * revealing the details below.
+     */
+    setMobileSummaryId("");
+
+    if (
+      transitionTimerRef.current
+    ) {
+      window.clearTimeout(
+        transitionTimerRef.current
+      );
+    }
+
+    transitionTimerRef.current =
+      window.setTimeout(
+        () => {
+          setMobileSummaryId(
+            nextId
+          );
+
+          window.requestAnimationFrame(
+            () => {
+              window.requestAnimationFrame(
+                () => {
+                  mobileSummaryRef
+                    .current
+                    ?.scrollIntoView({
+                      behavior:
+                        reduceMotion
+                          ? "auto"
+                          : "smooth",
+                      block:
+                        "start",
+                    });
+                }
+              );
+            }
+          );
+        },
+        reduceMotion
+          ? 0
+          : 140
+      );
+  }
+
   return (
     <>
       <SectionTitle
@@ -1667,7 +1920,7 @@ function StepOne({
                     disabled
                   }
                   onClick={() =>
-                    onSelect(
+                    handleSelect(
                       show
                     )
                   }
@@ -1677,6 +1930,9 @@ function StepOne({
                     p-4
                     text-right
                     transition
+                    duration-150
+                    active:scale-[0.985]
+                    sm:active:scale-100
 
                     ${
                       selected
@@ -1749,26 +2005,90 @@ function StepOne({
 
       {/* BOOKING_MOBILE_STEP1_SUMMARY */}
       {selected && (
-        <div
-          className="
-            mt-6
-            lg:hidden
-          "
-        >
-          <BookingSummary
-            selected={
-              selected
-            }
-            count={
-              count
-            }
-            setCount={
-              setCount
-            }
-            editable
-            compact
-          />
-        </div>
+        <>
+          {mobileSummaryId ===
+            String(
+              selected.id
+            ) && (
+            <motion.div
+              key={`mobile-booking-summary-${selected.id}`}
+              ref={
+                mobileSummaryRef
+              }
+              initial={
+                reduceMotion
+                  ? false
+                  : {
+                      opacity: 0,
+                      y: 34,
+                      scale: 0.985,
+                    }
+              }
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+              }}
+              transition={
+                reduceMotion
+                  ? {
+                      duration: 0,
+                    }
+                  : {
+                      duration: 0.4,
+                      ease: [
+                        0.22,
+                        1,
+                        0.36,
+                        1,
+                      ],
+                    }
+              }
+              className="
+                mt-6
+                scroll-mt-24
+                sm:hidden
+              "
+            >
+              <BookingSummary
+                selected={
+                  selected
+                }
+                count={
+                  count
+                }
+                setCount={
+                  setCount
+                }
+                editable
+                compact
+              />
+            </motion.div>
+          )}
+
+          <div
+            className="
+              mt-6
+              hidden
+              sm:block
+              lg:hidden
+            "
+          >
+            <BookingSummary
+              selected={
+                selected
+              }
+              count={
+                count
+              }
+              setCount={
+                setCount
+              }
+              editable
+              compact
+            />
+          </div>
+        </>
       )}
 
       <PrimaryButton
