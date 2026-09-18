@@ -33,6 +33,13 @@ import {
   updateCheckerUser,
 } from "./checker-user-service.js";
 
+import {
+  AdminTestOtpError,
+  getAdminTestOtpStatus,
+  issueAdminTestOtp,
+} from "./admin-test-otp.js";
+
+
 const router = Router();
 
 function normalizeTags(value) {
@@ -2216,5 +2223,96 @@ router.post(
 
 
 /* ===== ADMIN_CHECKER_MANAGEMENT_V1 END ===== */
+
+
+/* ===== ADMIN_TEST_OTP_V1 START ===== */
+
+
+router.get(
+  "/customer/test-otp/status",
+  (
+    req,
+    res
+  ) => {
+    res.set(
+      "Cache-Control",
+      "private, no-store, max-age=0"
+    );
+
+    return res.json({
+      ok:
+        true,
+
+      ...getAdminTestOtpStatus(),
+    });
+  }
+);
+
+
+router.post(
+  "/customer/test-otp",
+  async (
+    req,
+    res
+  ) => {
+    res.set(
+      "Cache-Control",
+      "private, no-store, max-age=0"
+    );
+
+    try {
+      const result =
+        await issueAdminTestOtp({
+          phone:
+            req.body
+              ?.phone,
+        });
+
+      return res.json({
+        ok:
+          true,
+
+        ...result,
+      });
+
+    } catch (error) {
+      if (
+        error instanceof
+        AdminTestOtpError
+      ) {
+        return res
+          .status(
+            error.status
+          )
+          .json({
+            message:
+              error.message,
+
+            code:
+              error.code,
+          });
+      }
+
+      console.error(
+        "Admin test OTP error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          message:
+            "خطا در ساخت OTP تست.",
+
+          code:
+            "ADMIN_TEST_OTP_INTERNAL_ERROR",
+        });
+    }
+  }
+);
+
+
+/* ===== ADMIN_TEST_OTP_V1 END ===== */
+
 
 export default router;
