@@ -7,6 +7,46 @@ let initPromise = null;
 
 
 export function ensureAuditTable() {
+  if (!initPromise) {
+    initPromise =
+      sequelize.query(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          actor TEXT,
+          method TEXT NOT NULL,
+          path TEXT NOT NULL,
+          action TEXT NOT NULL,
+          entity_type TEXT,
+          entity_id TEXT,
+          status_code INTEGER NOT NULL,
+          ip TEXT,
+          user_agent TEXT
+        )
+      `);
+  }
+
+  return initPromise;
+}
+
+
+function identifyAction(
+  method,
+  path
+) {
+  if (
+    method === "POST" &&
+    /\/customer\/test-otp(?:\/|$)/.test(path)
+  ) {
+    return {
+      action:
+        "customer.test_otp.issue",
+      entityType:
+        "otp_challenge",
+    };
+  }
+
+
   if (
     method === "POST" &&
     /\/checkers(?:\/|$)/.test(path) &&
@@ -46,33 +86,6 @@ export function ensureAuditTable() {
     };
   }
 
-  if (!initPromise) {
-    initPromise =
-      sequelize.query(`
-        CREATE TABLE IF NOT EXISTS audit_logs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          actor TEXT,
-          method TEXT NOT NULL,
-          path TEXT NOT NULL,
-          action TEXT NOT NULL,
-          entity_type TEXT,
-          entity_id TEXT,
-          status_code INTEGER NOT NULL,
-          ip TEXT,
-          user_agent TEXT
-        )
-      `);
-  }
-
-  return initPromise;
-}
-
-
-function identifyAction(
-  method,
-  path
-) {
   if (
     method === "POST" &&
     /\/reservations\/export(?:\/|$)/.test(path)
