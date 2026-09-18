@@ -1,7 +1,7 @@
 {
   "name": "beyragh-mandegar-dark-full",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "test:checkers": "node server/scripts/test-checker-management.js",
