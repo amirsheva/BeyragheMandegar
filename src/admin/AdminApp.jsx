@@ -13,6 +13,7 @@ import CheckinDashboard from "./CheckinDashboard";
 import NewsManager from "./NewsManager";
 import VenueManager from "./VenueManager";
 import SmsManager from "./SmsManager";
+import CustomerOtpTester from "./CustomerOtpTester";
 import Login from "./Login";
 import "./admin-auth.css";
 
@@ -161,6 +162,11 @@ export default function AdminApp() {
     case "/admin/news":
       page =
         <NewsManager />;
+      break;
+
+    case "/admin/test-otp":
+      page =
+        <CustomerOtpTester />;
       break;
 
     case "/admin/sms":

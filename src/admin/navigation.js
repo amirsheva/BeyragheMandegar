@@ -20,6 +20,10 @@ export const adminNavigation = [
     path: "/admin/reservations",
   },
   {
+    title: "OTP تست",
+    path: "/admin/test-otp",
+  },
+  {
     title: "مسئولان سالن",
     path: "/admin/checkers",
   },

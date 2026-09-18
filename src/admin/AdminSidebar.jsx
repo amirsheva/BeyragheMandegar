@@ -3,6 +3,7 @@ import {
   ExternalLink,
   FileText,
   Home,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -54,6 +55,13 @@ const meta = {
     icon:
       Ticket,
   UserRoundCog,
+  },
+
+  "/admin/test-otp": {
+    subtitle:
+      "ساخت کد موقت رزروهای من",
+    icon:
+      KeyRound,
   },
 
   "/admin/checkin": {

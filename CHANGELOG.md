@@ -4,6 +4,43 @@
 
 فرمت این فایل بر پایه Keep a Changelog است و نسخه‌ها از Semantic Versioning پیروی می‌کنند.
 
+## [2.2.0] - 2026-09-19
+
+### Added
+
+- ابزار Admin برای ساخت OTP تست در فرایند «رزروهای من».
+- نمایش کد ۶ رقمی تست فقط در پنل مدیریت برای آخرین OTP Challenge معتبر.
+- صفحه مستقل «OTP تست» در پنل مدیریت.
+- تست خودکار اختصاصی Admin Test OTP و اجرای آن در CI.
+
+### Changed
+
+- اجرای Local Development با `server/dev-server.js` تا `.env` محلی در محیط توسعه به‌درستی اعمال شود.
+- منطق Audit مربوط به عملیات Admin اصلاح شد.
+- صدور OTP تست با Action مستقل در Audit ثبت می‌شود.
+
+### Security
+
+- کد OTP خام در دیتابیس ذخیره نمی‌شود.
+- ابزار تست فقط با `ADMIN_TEST_OTP_ENABLED=true` فعال می‌شود.
+- ابزار تست فقط با `OTP_PROVIDER=noop` قابل استفاده است.
+- ابزار تست فقط از API احراز هویت‌شده Admin در دسترس است.
+- حالت SMS واقعی با غیرفعال بودن ابزار تست بدون تغییر باقی می‌ماند.
+
+### Validation
+
+- Public build passed.
+- Admin build passed.
+- Core integration tests passed.
+- OTP service tests passed.
+- Customer Portal tests passed.
+- Admin Test OTP tests passed.
+- Reservation Operations tests passed.
+- QR Check-in tests passed.
+- Attendance Dashboard tests passed.
+- Ticket Checker Management tests passed.
+- Backup / Restore tests passed.
+
 ## [2.1.0] - 2026-09-18
 
 ### Added
