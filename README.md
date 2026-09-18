@@ -2,7 +2,7 @@
 
 سامانه وب فارسی و RTL برای مدیریت اجرا، رزرو، صدور بلیت، آرشیو، اخبار و عملیات پذیرش سالن.
 
-**Current release:** `v2.0.0`
+**Current release:** `v2.1.0`
 
 > `main` نسخه پایدار است، `develop` برای توسعه فعال استفاده می‌شود و Release Candidateها از شاخه‌های `release/*` آماده می‌شوند.
 
@@ -135,7 +135,7 @@ docs/                     Product, engineering and release documentation
 
 **Beyragh Mandegar** is a Persian RTL web application for performance management, ticket reservations, customer self-service, QR ticketing, hall check-in, archives, news and admin operations.
 
-Release `v2.0.0` introduces the complete customer-to-door ticketing flow: OTP-backed reservations, My Reservations, one signed QR per ticket, multi-checker admission, attendance monitoring, checker account management and hardened PII handling.
+Release `v2.1.0` improves the mobile booking experience with animated night selection, smooth step transitions and automatic scrolling, while retaining the complete customer-to-door ticketing flow: OTP-backed reservations, My Reservations, one signed QR per ticket, multi-checker admission, attendance monitoring, checker account management and hardened PII handling.
 
 ### Development
 

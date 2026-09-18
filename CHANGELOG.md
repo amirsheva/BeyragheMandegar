@@ -4,6 +4,34 @@
 
 فرمت این فایل بر پایه Keep a Changelog است و نسخه‌ها از Semantic Versioning پیروی می‌کنند.
 
+## [2.1.0] - 2026-09-18
+
+### Added
+
+- انیمیشن انتخاب شب اجرا در نسخه موبایل با بازخورد لمسی/بصری کوتاه.
+- نمایش نرم خلاصه رزرو پس از انتخاب اجرا با Fade و Slide.
+- Transition یکپارچه بین مراحل فرایند رزرو در موبایل.
+- Scroll خودکار و نرم به مرحله فعال رزرو.
+
+### Changed
+
+- تجربه کاربری فرایند رزرو در موبایل روان‌تر و مرحله‌محورتر شد.
+- رفتار نسخه Desktop بدون تغییر باقی ماند.
+- انیمیشن‌ها با تنظیم `prefers-reduced-motion` سازگار شدند.
+
+### Validation
+
+- Public build passed.
+- Admin build passed.
+- Core integration tests passed.
+- OTP tests passed.
+- Customer Portal tests passed.
+- Reservation Operations tests passed.
+- QR Check-in tests passed.
+- Attendance Dashboard tests passed.
+- Ticket Checker Management tests passed.
+- Backup / Restore tests passed.
+
 ## [2.0.0] - 2026-08-31
 
 ### Added
