@@ -25,6 +25,7 @@
     "preflight:prod": "node server/scripts/preflight-production.js",
     "migrate:pii": "node server/scripts/migrate-pii-encryption.js",
     "verify:pii": "node server/scripts/verify-pii-encryption.js",
+    "rotate:pii-key": "node server/scripts/rotate-pii-key.js",
     "rollback:pii": "node server/scripts/rollback-pii-encryption.js",
     "seed": "node server/seed-production.js",
     "preview": "vite preview"
