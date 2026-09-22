@@ -55,6 +55,9 @@ jobs:
       - name: Admin test OTP
         run: npm run test:admin-otp
 
+      - name: Break-glass security tests
+        run: npm run test:break-glass
+
       - name: Reservation operations test
         run: npm run test:reservation-ops
 

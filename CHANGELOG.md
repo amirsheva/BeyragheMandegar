@@ -4,6 +4,48 @@
 
 فرمت این فایل بر پایه Keep a Changelog است و نسخه‌ها از Semantic Versioning پیروی می‌کنند.
 
+## [2.3.0] - 2026-09-22
+
+### Added
+
+- قابلیت کنترل‌شده Break Glass برای مشاهده موقت `phone` و `national_id` واقعی در پنل مدیریت.
+- رمز عبور مستقل Break Glass با هش scrypt و محدودسازی دسترسی به Owner مشخص.
+- Grant کوتاه‌عمر در حافظه با سقف تعداد Reveal و امکان Lock دستی.
+- ثبت رویدادهای Unlock، Reveal و Lock در `pii_access_logs` بدون ذخیره PII خام.
+- صفحه مستقیم امنیتی Admin برای Break Glass بدون قرار گرفتن در Sidebar عادی.
+- ابزار اتمیک `rotate:pii-key` برای تعویض کلید رمزنگاری PII.
+- تست خودکار اختصاصی Break Glass و اجرای آن در CI.
+
+### Changed
+
+- نمایش عادی رزروها در Admin همچنان Mask شده باقی می‌ماند.
+- پاسخ‌های حساس Break Glass با `Cache-Control: no-store` ارسال می‌شوند.
+- Reveal هر رزرو فقط به‌صورت تکی انجام می‌شود و Bulk Export اطلاعات خام وجود ندارد.
+
+### Security
+
+- Break Glass علاوه بر Admin Session به Credential مستقل نیاز دارد.
+- برای Unlock دلیل ساختاریافته اجباری است.
+- Grant فقط در حافظه UI نگهداری می‌شود و پس از انقضا یا Lock قابل استفاده نیست.
+- اطلاعات Reveal شده در UI پس از مدت کوتاه پاک می‌شوند.
+- رویدادهای حساس Audit می‌شوند بدون ثبت شماره موبایل یا کد ملی خام.
+- ابزار Rotate کلید PII پیش از Commit، Round-trip و صحت رمزگشایی کل داده‌ها را بررسی می‌کند.
+
+### Validation
+
+- Public build passed.
+- Admin build passed.
+- Core integration tests passed.
+- OTP service tests passed.
+- Customer Portal tests passed.
+- Admin Test OTP tests passed.
+- Break Glass security tests passed.
+- Reservation Operations tests passed.
+- QR Check-in tests passed.
+- Attendance Dashboard tests passed.
+- Ticket Checker Management tests passed.
+- Backup / Restore tests passed.
+
 ## [2.2.0] - 2026-09-19
 
 ### Added

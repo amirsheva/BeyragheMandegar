@@ -14,6 +14,7 @@ import NewsManager from "./NewsManager";
 import VenueManager from "./VenueManager";
 import SmsManager from "./SmsManager";
 import CustomerOtpTester from "./CustomerOtpTester";
+import BreakGlassPii from "./BreakGlassPii";
 import Login from "./Login";
 import "./admin-auth.css";
 
@@ -172,6 +173,11 @@ export default function AdminApp() {
     case "/admin/sms":
       page =
         <SmsManager />;
+      break;
+
+    case "/admin/security/break-glass":
+      page =
+        <BreakGlassPii />;
       break;
 
     default:
