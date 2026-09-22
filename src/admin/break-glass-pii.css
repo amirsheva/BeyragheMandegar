@@ -1,0 +1,238 @@
+.break-glass-page {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 12px 0 48px;
+}
+
+.break-glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+  background: rgba(20, 18, 18, 0.78);
+  padding: 28px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+
+.break-glass-kicker {
+  display: inline-flex;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ba9b83;
+}
+
+.break-glass-card h1 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.4;
+  color: #f4ece7;
+}
+
+.break-glass-lead,
+.break-glass-card > p {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: #a99f98;
+  line-height: 1.9;
+}
+
+.break-glass-error {
+  margin-top: 20px;
+  padding: 13px 15px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 14px;
+  background: rgba(127, 29, 29, 0.18);
+  color: #fecaca;
+}
+
+.break-glass-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 26px;
+}
+
+.break-glass-form label:not(.break-glass-confirm) {
+  display: grid;
+  gap: 8px;
+}
+
+.break-glass-form label > span {
+  color: #c9bdb5;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.break-glass-form input,
+.break-glass-form select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 0 14px;
+  color: #f7f0eb;
+  font: inherit;
+  outline: none;
+}
+
+.break-glass-form select option {
+  color: #111;
+}
+
+.break-glass-form input:focus,
+.break-glass-form select:focus {
+  border-color: rgba(186, 155, 131, 0.7);
+  box-shadow: 0 0 0 3px rgba(186, 155, 131, 0.1);
+}
+
+.break-glass-form button,
+.break-glass-active button,
+.break-glass-result button {
+  border: 0;
+  border-radius: 13px;
+  min-height: 46px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.break-glass-form > button {
+  justify-self: start;
+  background: #efe5dd;
+  color: #171313;
+}
+
+.break-glass-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.break-glass-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.8;
+}
+
+.break-glass-confirm input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 5px;
+  accent-color: #ba9b83;
+}
+
+.break-glass-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 26px;
+  padding: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 16px;
+  background: rgba(20, 83, 45, 0.14);
+}
+
+.break-glass-active > div {
+  display: grid;
+  gap: 5px;
+}
+
+.break-glass-active strong {
+  color: #dcfce7;
+}
+
+.break-glass-active span {
+  color: #a7b9ac;
+  font-size: 13px;
+}
+
+.break-glass-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #efe5dd;
+}
+
+.break-glass-result {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 18px;
+  background: rgba(120, 53, 15, 0.12);
+}
+
+.break-glass-result__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.break-glass-result__header strong {
+  color: #ffedd5;
+}
+
+.break-glass-result__header button {
+  min-height: 36px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7eee8;
+}
+
+.break-glass-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.break-glass-values > div {
+  display: grid;
+  gap: 7px;
+  padding: 15px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.break-glass-values span {
+  color: #ad9f96;
+  font-size: 12px;
+}
+
+.break-glass-values bdi {
+  direction: ltr;
+  text-align: right;
+  color: #fff7ed;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+
+.break-glass-result small {
+  display: block;
+  margin-top: 14px;
+  color: #bcaea5;
+  line-height: 1.8;
+}
+
+@media (max-width: 720px) {
+  .break-glass-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .break-glass-active,
+  .break-glass-result__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .break-glass-values {
+    grid-template-columns: 1fr;
+  }
+
+  .break-glass-form > button {
+    width: 100%;
+  }
+}

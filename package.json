@@ -17,6 +17,7 @@
     "test:otp": "node server/scripts/test-otp-service.js",
     "test:customer": "node server/scripts/test-customer-portal.js",
     "test:admin-otp": "node server/scripts/test-admin-test-otp.js",
+    "test:break-glass": "node server/scripts/test-break-glass.js",
     "test:reservation-ops": "node server/scripts/test-reservation-operations.js",
     "test:backup": "node server/scripts/run-backup-tests.js",
     "backup:db": "node server/scripts/backup-db.js",
@@ -24,6 +25,7 @@
     "preflight:prod": "node server/scripts/preflight-production.js",
     "migrate:pii": "node server/scripts/migrate-pii-encryption.js",
     "verify:pii": "node server/scripts/verify-pii-encryption.js",
+    "rotate:pii-key": "node server/scripts/rotate-pii-key.js",
     "rollback:pii": "node server/scripts/rollback-pii-encryption.js",
     "seed": "node server/seed-production.js",
     "preview": "vite preview"
