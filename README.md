@@ -11,7 +11,7 @@ Standalone API/backend for Beyragh Mandegar.
 - OTP / SMS
 - Admin, customer and ticket-checker APIs
 
-This repository does not build or serve React/Vite assets.
+This backend branch (`refactor/backend-split`) of `amirsheva/BeyragheMandegar` does not build or serve React/Vite assets. The frontend and `/admin` static builds belong to the frontend branch and are served by Nginx.
 
 ## Development
 

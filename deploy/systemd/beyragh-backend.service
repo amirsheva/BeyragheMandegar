@@ -4,10 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=beyragh
+Group=beyragh
 WorkingDirectory=/opt/beyragh/backend
 Environment=NODE_ENV=production
 EnvironmentFile=/opt/beyragh/backend/.env
+Environment=HOST=127.0.0.1
+Environment=PORT=4000
+UMask=0077
 ExecStart=/usr/bin/node /opt/beyragh/backend/server/index.js
 Restart=always
 RestartSec=5

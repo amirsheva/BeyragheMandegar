@@ -1232,17 +1232,18 @@ async function startServer() {
     process.env.PORT ||
     4000;
 
+  const HOST =
+    process.env.HOST ||
+    "127.0.0.1";
+
 
   const server =
     app.listen(
       PORT,
+      HOST,
       () => {
         console.log(
-          `✅ Server running on http://localhost:${PORT}`
-        );
-
-        console.log(
-          `🔧 Admin panel at http://localhost:${PORT}/admin/`
+          `✅ Backend API running on http://${HOST}:${PORT}`
         );
       }
     );
