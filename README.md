@@ -42,4 +42,4 @@ npm run build
 npm run build:admin
 ```
 
-Deploy `dist/` as the public site and `dist-admin/` at `/admin/`. Keep `/api` on the same public origin and reverse-proxy it to the backend service. This preserves the existing HttpOnly session-cookie security model without cross-site cookie changes.
+Deploy `dist/` as the single static root; the Admin build is emitted into `dist/admin/`. Keep `/api` on the same public origin and reverse-proxy it to the backend service. This preserves the existing HttpOnly session-cookie security model without cross-site cookie changes.
