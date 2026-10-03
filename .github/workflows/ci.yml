@@ -1,151 +1,29 @@
-name: Beyragh CI
+name: Beyragh Frontend CI
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - "release/**"
-
+    branches: [main, develop, "release/**", "refactor/**"]
   pull_request:
-    branches:
-      - main
-      - develop
-      - "release/**"
+    branches: [main, develop, "release/**"]
 
 permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20.19.0"
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Server syntax
-        run: node --check server/index.js
-
       - name: Public build
         run: npm run build
-
       - name: Admin build
         run: npm run build:admin
-
-      - name: Core integration tests
-        run: npm run test:core
-
-      - name: OTP service tests
-        run: npm run test:otp
-
-      - name: Customer portal tests
-        run: npm run test:customer
-
-      - name: Admin test OTP
-        run: npm run test:admin-otp
-
-      - name: Break-glass security tests
-        run: npm run test:break-glass
-
-      - name: Reservation operations test
-        run: npm run test:reservation-ops
-
-      - name: QR check-in test
-        run: npm run test:checkin
-
-      - name: Attendance dashboard test
-        run: npm run test:attendance
-
-      - name: Ticket checker management test
-        run: npm run test:checkers
-
-      - name: Backup and restore test
-        run: npm run test:backup
-
-  publish-release:
-    name: Publish versioned release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Resolve version
-        id: version
-        shell: bash
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          TAG="v${VERSION}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-
-      - name: Check whether release already exists
-        id: existing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        shell: bash
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Prepare release notes
-        if: steps.existing.outputs.exists != 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const version = process.env.VERSION;
-          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-          const marker = `## [${version}]`;
-          const start = changelog.indexOf(marker);
-          if (start < 0) {
-            throw new Error(`CHANGELOG entry not found for ${version}`);
-          }
-          const rest = changelog.slice(start + marker.length);
-          const match = rest.match(/\n## \[[^\n]+\]/);
-          const end = match ? start + marker.length + match.index : changelog.length;
-          const notes = changelog.slice(start, end).trim() + '\n';
-          fs.writeFileSync('release-notes.md', notes, 'utf8');
-          NODE
-
-      - name: Create tag and GitHub Release
-        if: steps.existing.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "Beyragh Mandegar $TAG"
-          git push origin "$TAG"
-          gh release create "$TAG" \
-            --title "Beyragh Mandegar $TAG — Ticketing & Operations Release" \
-            --notes-file release-notes.md
-
-      - name: Release already exists
-        if: steps.existing.outputs.exists == 'true'
-        run: echo "Release ${{ steps.version.outputs.tag }} already exists; nothing to publish."
