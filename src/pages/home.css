@@ -501,22 +501,22 @@
     11px;
 }
 
-.home-hero__booking {
+.home-hero .home-hero__booking {
   min-height: 64px;
   min-width: 240px;
   padding-inline: 28px;
   gap: 14px;
-  border-color: #f0cd77;
-  background: #e3b94a;
-  color: #211607;
+  border-color: #f0cd77 !important;
+  background: #e3b94a !important;
+  color: #211607 !important;
   font-size: 18px;
   box-shadow: 0 10px 32px rgba(227, 185, 74, .3);
   box-sizing: border-box;
 }
 
-.home-hero__booking:hover {
-  border-color: #ffe3a2;
-  background: #f0cd77;
+.home-hero .home-hero__booking:hover {
+  border-color: #ffe3a2 !important;
+  background: #f0cd77 !important;
 }
 
 .home-hero__booking:focus-visible {
