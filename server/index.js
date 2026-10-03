@@ -778,6 +778,10 @@ async function startServer() {
 
       /* NATIONAL_ID_CHECKSUM_V1 */
 
+      // Identity fields are optional for now; supplied IDs still need validation.
+      const hasNationalId =
+        String(nationalId ?? "").trim() !== "";
+
       const normalizedNationalId = String(
         nationalId || ""
       )
@@ -850,6 +854,7 @@ async function startServer() {
 
 
       if (
+        hasNationalId &&
         !isValidIranianNationalId(
           normalizedNationalId
         )
@@ -884,13 +889,8 @@ async function startServer() {
             ""
           );
 
-      const cleanNationalId =
-        normalizedNationalId;
-
       if (
-        !cleanName ||
         !/^09\d{9}$/.test(cleanPhone) ||
-        !/^\d{10}$/.test(cleanNationalId) ||
         !Number.isInteger(ticketCount) ||
         ticketCount < 1 ||
         ticketCount > 20 ||

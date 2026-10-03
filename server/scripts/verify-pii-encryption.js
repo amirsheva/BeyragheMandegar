@@ -163,8 +163,7 @@ async function run() {
 
     if (
       typeof item.national_id !==
-        "string" ||
-      !item.national_id
+        "string"
     ) {
 
       throw new Error(
