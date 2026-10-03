@@ -495,17 +495,6 @@ export default function Booking() {
 
 
     if (
-      !form.name.trim()
-    ) {
-      setError(
-        "نام و نام خانوادگی را وارد کنید."
-      );
-
-      return null;
-    }
-
-
-    if (
       !/^09\d{9}$/.test(
         phone
       )
@@ -519,6 +508,7 @@ export default function Booking() {
 
 
     if (
+      form.nationalId.trim() &&
       !/^\d{10}$/.test(
         nationalId
       )
@@ -536,6 +526,7 @@ export default function Booking() {
         current
       ) => ({
         ...current,
+        name: current.name.trim(),
         phone,
         nationalId,
       })
@@ -2133,7 +2124,7 @@ function StepTwo({
           UserRound
         }
         title="اطلاعات رزروکننده"
-        description="اطلاعات زیر فقط برای ثبت و پیگیری رزرو استفاده می‌شود."
+        description="شماره موبایل برای ثبت و پیگیری رزرو الزامی است؛ نام و کد ملی فعلاً اختیاری هستند."
       />
 
 
@@ -2148,7 +2139,7 @@ function StepTwo({
           icon={
             UserRound
           }
-          label="نام و نام خانوادگی"
+          label="نام و نام خانوادگی (اختیاری)"
           value={
             form.name
           }
@@ -2193,7 +2184,7 @@ function StepTwo({
           icon={
             BadgeCheck
           }
-          label="کد ملی"
+          label="کد ملی (اختیاری)"
           value={
             form.nationalId
           }
@@ -2664,7 +2655,11 @@ function StepThree({
                 IdCardMetaVector
               }
               label="کد ملی"
-              value="ثبت شده"
+              value={
+                form.nationalId
+                  ? "ثبت شده"
+                  : "ثبت نشده"
+              }
             />
           </FinalReviewSection>
 

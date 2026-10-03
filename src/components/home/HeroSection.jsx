@@ -221,22 +221,15 @@ export default function HeroSection() {
             {next ? (
               <Link
                 to="/booking"
-                className="home-button home-button--primary"
+                className="home-button home-button--primary home-hero__booking"
               >
-                <Ticket size={19} />
+                <Ticket size={22} />
 
                 رزرو بلیت
 
-                <ArrowLeft size={18} />
+                <ArrowLeft size={20} />
               </Link>
             ) : null}
-
-            <Link
-              to="/#archive"
-              className="home-button home-button--ghost"
-            >
-              مشاهده آرشیو اجراها
-            </Link>
           </div>
 
         </div>

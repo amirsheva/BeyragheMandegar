@@ -12,8 +12,8 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <StatsSection />
       <UpcomingPerformances />
+      <StatsSection />
       <AboutSection />
       <NewsSection />
       <ArchiveSection />
