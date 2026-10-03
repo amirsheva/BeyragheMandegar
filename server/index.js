@@ -5,7 +5,6 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import path from "path";
 
 import {
   redactAccessUrl,
@@ -13,7 +12,6 @@ import {
 import { randomBytes } from "crypto";
 import { Op } from "sequelize";
 
-import { setupAdmin } from "./admin.js";
 import {
   sequelize,
   Production,
@@ -275,7 +273,7 @@ async function startServer() {
     })
   );
 
-  await setupAdmin(app);
+  await sequelize.sync();
 
   await ensureCustomerPortalSchema();
 
@@ -1225,30 +1223,6 @@ async function startServer() {
     adminAuditMiddleware,
     adminApiRouter
   );
-
-// ============================
-// React Admin Panel — port 4000 only
-// ============================
-
-const adminDist = path.join(process.cwd(), "dist-admin");
-
-app.use(
-  "/admin/assets",
-  express.static(path.join(adminDist, "assets"), {
-    redirect: false,
-    index: false,
-  })
-);
-
-app.get(["/admin", "/admin/", "/admin/*"], (req, res) => {
-  res.sendFile(path.join(adminDist, "index.html"));
-});
-
-
-  // SPA fallback for internal admin routes such as /admin/shows.
-  app.get(/^\/admin\/.*$/, (req, res) => {
-    res.sendFile(path.join(adminDist, "index.html"));
-  });
 
   app.use((req, res) => {
     res.status(404).json({ message: "مسیر یافت نشد" });

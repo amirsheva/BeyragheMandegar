@@ -1,18 +1,17 @@
 {
-  "name": "beyragh-mandegar-dark-full",
+  "name": "beyragh-mandegar-backend",
   "private": true,
   "version": "2.3.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
+    "dev": "node server/dev-server.js",
+    "start": "node server/index.js",
     "test:checkers": "node server/scripts/test-checker-management.js",
     "test:attendance": "node server/scripts/test-attendance-dashboard.js",
     "test:checkin": "node server/scripts/test-checkin.js",
-    "dev": "concurrently \"npm:dev:*\"",
-    "dev:client": "vite",
-    "dev:server": "node server/dev-server.js",
-    "start": "node server/index.js",
-    "build": "vite build",
-    "build:admin": "vite build --config vite.admin.config.js",
     "test:core": "node server/scripts/run-core-tests.js",
     "test:otp": "node server/scripts/test-otp-service.js",
     "test:customer": "node server/scripts/test-customer-portal.js",
@@ -27,8 +26,7 @@
     "verify:pii": "node server/scripts/verify-pii-encryption.js",
     "rotate:pii-key": "node server/scripts/rotate-pii-key.js",
     "rollback:pii": "node server/scripts/rollback-pii-encryption.js",
-    "seed": "node server/seed-production.js",
-    "preview": "vite preview"
+    "seed": "node server/seed-production.js"
   },
   "dependencies": {
     "@adminjs/design-system": "^4.1.1",
@@ -37,10 +35,6 @@
     "@adminjs/sequelize": "^4.1.1",
     "@adminjs/sql": "^2.2.6",
     "@adminjs/themes": "^1.0.1",
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.0",
-    "@fontsource/vazirmatn": "^5.2.8",
-    "@zxing/browser": "^0.2.1",
     "adminjs": "^7.8.17",
     "adminjs-drizzle": "^0.1.2",
     "better-sqlite3": "^9.6.0",
@@ -51,26 +45,13 @@
     "express": "^4.21.2",
     "express-formidable": "^1.2.0",
     "express-rate-limit": "^8.1.0",
-    "framer-motion": "^12.23.22",
     "helmet": "^8.1.0",
     "jalaali-js": "^1.2.6",
     "jalaliday": "^3.1.1",
-    "lucide-react": "^0.545.0",
     "morgan": "^1.10.1",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^7.9.1",
     "sequelize": "^6.37.7",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
-    "autoprefixer": "^10.4.21",
-    "concurrently": "^9.0.1",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
-    "vite": "^7.1.2"
   }
 }
