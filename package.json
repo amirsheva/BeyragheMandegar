@@ -18,7 +18,7 @@
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
     "@fontsource/vazirmatn": "^5.2.8",
-    "@zxing/browser": "^0.2.1",
+    "@zxing/browser": "0.1.5",
     "dayjs": "^1.11.13",
     "framer-motion": "^12.23.22",
     "jalaali-js": "^1.2.6",
