@@ -1,0 +1,18 @@
+[Unit]
+Description=Beyragh Mandegar Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/beyragh/backend
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/beyragh/backend/.env
+ExecStart=/usr/bin/node /opt/beyragh/backend/server/index.js
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target
