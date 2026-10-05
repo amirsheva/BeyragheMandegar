@@ -11,7 +11,6 @@ import {
 } from "react-router-dom";
 
 import {
-  AnimatePresence,
   motion,
   useReducedMotion,
 } from "framer-motion";
@@ -20,18 +19,12 @@ import {
   CalendarDays,
   Clock3,
   Ticket,
-  UserRound,
   Phone,
-  BadgeCheck,
   KeyRound,
   Minus,
   Plus,
   ArrowLeft,
-  ArrowRight,
-  Check,
   CircleCheck,
-  Pencil,
-  Clapperboard,
 } from "lucide-react";
 
 
@@ -79,6 +72,33 @@ function normalizeDigits(
 }
 
 
+function isShowBookable(
+  show
+) {
+  if (!show) {
+    return false;
+  }
+
+  const available =
+    Number(
+      show.remainingCapacity ??
+        show.remaining_capacity ??
+        show.capacity ??
+        0
+    );
+
+  return (
+    available > 0 &&
+    show.bookingEnabled !==
+      false &&
+    show.booking_enabled !==
+      false &&
+    show.status ===
+      "active"
+  );
+}
+
+
 export default function Booking() {
   const [
     searchParams,
@@ -104,12 +124,6 @@ export default function Booking() {
 
 
   const [
-    step,
-    setStep,
-  ] = useState(1);
-
-
-  const [
     selectedId,
     setSelectedId,
   ] = useState(
@@ -124,13 +138,15 @@ export default function Booking() {
 
 
   const [
-    form,
-    setForm,
-  ] = useState({
-    name: "",
-    phone: "",
-    nationalId: "",
-  });
+    phone,
+    setPhone,
+  ] = useState("");
+
+
+  const [
+    otpModalOpen,
+    setOtpModalOpen,
+  ] = useState(false);
 
 
   const [
@@ -207,91 +223,6 @@ export default function Booking() {
 
   const bookingStageRef =
     useRef(null);
-
-  const reduceBookingMotion =
-    useReducedMotion();
-
-  const [
-    isMobileBookingFlow,
-    setIsMobileBookingFlow,
-  ] = useState(false);
-
-
-  useEffect(() => {
-    const media =
-      window.matchMedia(
-        "(max-width: 639px)"
-      );
-
-    const sync = () => {
-      setIsMobileBookingFlow(
-        media.matches
-      );
-    };
-
-    sync();
-
-    if (
-      media.addEventListener
-    ) {
-      media.addEventListener(
-        "change",
-        sync
-      );
-
-      return () => {
-        media.removeEventListener(
-          "change",
-          sync
-        );
-      };
-    }
-
-    media.addListener(sync);
-
-    return () => {
-      media.removeListener(sync);
-    };
-  }, []);
-
-
-  useEffect(() => {
-    if (
-      !isMobileBookingFlow ||
-      step === 1
-    ) {
-      return undefined;
-    }
-
-    const timer =
-      window.setTimeout(
-        () => {
-          bookingStageRef
-            .current
-            ?.scrollIntoView({
-              behavior:
-                reduceBookingMotion
-                  ? "auto"
-                  : "smooth",
-              block:
-                "start",
-            });
-        },
-        reduceBookingMotion
-          ? 0
-          : 90
-      );
-
-    return () => {
-      window.clearTimeout(
-        timer
-      );
-    };
-  }, [
-    step,
-    isMobileBookingFlow,
-    reduceBookingMotion,
-  ]);
 
 
 
@@ -469,24 +400,14 @@ export default function Booking() {
 
 
     setError("");
-    setStep(2);
+    setOtpModalOpen(true);
   }
 
 
-  function validateStepTwo() {
-    const phone =
+  function validatePhone() {
+    const cleanPhone =
       normalizeDigits(
-        form.phone
-      )
-        .replace(
-          /\D/g,
-          ""
-        );
-
-
-    const nationalId =
-      normalizeDigits(
-        form.nationalId
+        phone
       )
         .replace(
           /\D/g,
@@ -496,7 +417,7 @@ export default function Booking() {
 
     if (
       !/^09\d{9}$/.test(
-        phone
+        cleanPhone
       )
     ) {
       setError(
@@ -507,35 +428,13 @@ export default function Booking() {
     }
 
 
-    if (
-      form.nationalId.trim() &&
-      !/^\d{10}$/.test(
-        nationalId
-      )
-    ) {
-      setError(
-        "کد ملی باید ۱۰ رقم باشد."
-      );
-
-      return null;
-    }
-
-
-    setForm(
-      (
-        current
-      ) => ({
-        ...current,
-        name: current.name.trim(),
-        phone,
-        nationalId,
-      })
+    setPhone(
+      cleanPhone
     );
 
 
     return {
-      phone,
-      nationalId,
+      phone: cleanPhone,
     };
   }
 
@@ -750,9 +649,9 @@ export default function Booking() {
   }
 
 
-  async function nextFromStepTwo() {
+  async function handleSendCode() {
     const validated =
-      validateStepTwo();
+      validatePhone();
 
 
     if (!validated) {
@@ -761,7 +660,8 @@ export default function Booking() {
 
 
     const {
-      phone,
+      phone:
+        cleanPhone,
     } =
       validated;
 
@@ -771,14 +671,15 @@ export default function Booking() {
         verificationToken
       ) &&
       verifiedPhone ===
-        phone;
+        cleanPhone;
 
 
     if (
       alreadyVerified
     ) {
       setError("");
-      setStep(4);
+
+      await submitReservation();
 
       return;
     }
@@ -789,46 +690,35 @@ export default function Booking() {
         otpChallengeId
       ) &&
       otpPhone ===
-        phone;
+        cleanPhone;
 
 
     if (
       challengeMatches
     ) {
-      setError("");
-      setStep(3);
-
       return;
     }
 
 
-    const requested =
-      await requestOtp(
-        phone
-      );
-
-
-    if (
-      requested
-    ) {
-      setStep(3);
-    }
+    await requestOtp(
+      cleanPhone
+    );
   }
 
 
-  async function nextFromOtpStep() {
+  async function handleVerifyCode() {
     const validated =
-      validateStepTwo();
+      validatePhone();
 
 
     if (!validated) {
-      setStep(2);
       return;
     }
 
 
     const {
-      phone,
+      phone:
+        cleanPhone,
     } =
       validated;
 
@@ -838,7 +728,7 @@ export default function Booking() {
         otpChallengeId
       ) &&
       otpPhone ===
-        phone;
+        cleanPhone;
 
 
     if (
@@ -848,27 +738,60 @@ export default function Booking() {
         "برای این شماره موبایل کد تأیید فعالی وجود ندارد. دوباره کد دریافت کنید."
       );
 
-      setStep(2);
+      setOtpChallengeId(
+        ""
+      );
+
+      setOtpPhone(
+        ""
+      );
+
       return;
     }
 
 
     const verified =
       await verifyOtp(
-        phone
+        cleanPhone
       );
 
 
     if (
       verified
     ) {
-      setStep(4);
+      await submitReservation();
     }
   }
 
+
+  function changePhoneNumber() {
+    setOtpChallengeId(
+      ""
+    );
+
+    setOtpPhone(
+      ""
+    );
+
+    setOtpCode(
+      ""
+    );
+
+    setVerificationToken(
+      ""
+    );
+
+    setVerifiedPhone(
+      ""
+    );
+
+    setError("");
+  }
+
+
   async function resendOtp() {
     const validated =
-      validateStepTwo();
+      validatePhone();
 
 
     if (
@@ -913,17 +836,15 @@ export default function Booking() {
             body:
               JSON.stringify({
                 name:
-                  form.name.trim(),
+                  "",
 
                 phone:
                   normalizeDigits(
-                    form.phone
+                    phone
                   ),
 
                 nationalId:
-                  normalizeDigits(
-                    form.nationalId
-                  ),
+                  "",
 
                 count,
 
@@ -979,13 +900,19 @@ export default function Booking() {
             ""
           );
 
-          setStep(2);
+          setOtpModalOpen(
+            true
+          );
         }
 
 
         return;
       }
 
+
+      setOtpModalOpen(
+        false
+      );
 
       setResult(
         data
@@ -1055,7 +982,7 @@ export default function Booking() {
           </h1>
 
 
-          <p
+          {/* <p
             className="
               mt-3
               leading-7
@@ -1063,10 +990,10 @@ export default function Booking() {
             "
           >
             اطلاعات رزرو شما ثبت شد. کد پیگیری را برای مراجعات بعدی نگه دارید.
-          </p>
+          </p> */}
 
 
-          <div
+          {/* <div
             className="
               mt-7
               rounded-[20px]
@@ -1075,8 +1002,8 @@ export default function Booking() {
               bg-black/20
               p-5
             "
-          >
-            <div
+          > */}
+            {/* <div
               className="
                 text-[12px]
                 text-[#78827b]
@@ -1100,7 +1027,7 @@ export default function Booking() {
             >
               {result.trackingCode}
             </div>
-          </div>
+          </div> */}
 
 
           <div
@@ -1187,16 +1114,6 @@ export default function Booking() {
 
 
 
-        {/* BOOKING_STEPPER_ABOVE_TITLE_V5 */}
-        <Stepper
-          current={
-            step
-          }
-        />
-
-
-
-
                 <h1
           className="
             mt-1
@@ -1223,7 +1140,7 @@ export default function Booking() {
             text-[#91867f]
           "
         >
-          شب اجرا را انتخاب کنید، اطلاعات خود را وارد کنید و پیش از ثبت نهایی همه‌چیز را مرور کنید.
+          شب اجرا و تعداد بلیت را انتخاب کنید؛ با تأیید کد پیامکی، رزرو شما فوراً ثبت می‌شود.
         </p>
 
 
@@ -1242,7 +1159,7 @@ export default function Booking() {
             ref={
               bookingStageRef
             }
-            className={`
+            className="
               scroll-mt-24
               rounded-[28px]
               border
@@ -1250,218 +1167,43 @@ export default function Booking() {
               bg-[#0b0909]
               p-5
               sm:p-7
-              ${
-                step === 4
-                  ? "lg:col-span-2 booking-final-shell"
-                  : ""
-              }
-            `}
+            "
           >
-            <AnimatePresence
-              mode="wait"
-              initial={false}
-            >
-              <motion.div
-                key={`booking-mobile-step-${step}`}
-                initial={
-                  isMobileBookingFlow &&
-                  !reduceBookingMotion
-                    ? {
-                        opacity: 0,
-                        y: 26,
-                        scale: 0.992,
-                      }
-                    : false
-                }
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                }}
-                exit={
-                  isMobileBookingFlow &&
-                  !reduceBookingMotion
-                    ? {
-                        opacity: 0,
-                        y: -14,
-                        scale: 0.995,
-                      }
-                    : {
-                        opacity: 1,
-                        y: 0,
-                        scale: 1,
-                      }
-                }
-                transition={{
-                  duration:
-                    isMobileBookingFlow &&
-                    !reduceBookingMotion
-                      ? 0.24
-                      : 0,
-                  ease: [
-                    0.22,
-                    1,
-                    0.36,
-                    1,
-                  ],
-                }}
-              >
+            <StepOne
+              shows={
+                shows
+              }
+              loading={
+                loading
+              }
+              selectedId={
+                selectedId
+              }
+              onSelect={
+                selectShow
+              }
 
-            {step ===
-              1 && (
-              <StepOne
-                shows={
-                  shows
-                }
-                loading={
-                  loading
-                }
-                selectedId={
-                  selectedId
-                }
-                onSelect={
-                  selectShow
-                }
-
-                selected={
-                  selected
-                }
-                count={
-                  count
-                }
-                setCount={
-                  setCount
-                }
-                remaining={
-                  remaining
-                }                onNext={
-                  nextFromStepOne
-                }
-              />
-            )}
-
-
-            {/* BOOKING_MOBILE_READONLY_SUMMARY */}
-            {(step === 2 ||
-              step === 3) &&
-            selected && (
-              <div
-                className="
-                  mb-5
-                  lg:hidden
-                "
-              >
-                <MobileSelectionBar
-                  selected={
-                    selected
-                  }
-                  count={
-                    count
-                  }
-                  onEdit={() =>
-                    setStep(1)
-                  }
-                />
-              </div>
-            )}
-
-            {step ===
-              2 && (
-              <StepTwo
-                form={
-                  form
-                }
-                setForm={
-                  setForm
-                }
-                onBack={() =>
-                  setStep(
-                    1
-                  )
-                }
-                onNext={
-                  nextFromStepTwo
-                }
-                requesting={
-                  otpRequesting
-                }
-              />
-            )}
-
-
-            {step ===
-              3 && (
-              <OtpStep
-                phone={
-                  normalizeDigits(
-                    form.phone
-                  ).replace(
-                    /\D/g,
-                    ""
-                  )
-                }
-                otpCode={
-                  otpCode
-                }
-                setOtpCode={
-                  setOtpCode
-                }
-                otpRequesting={
-                  otpRequesting
-                }
-                otpVerifying={
-                  otpVerifying
-                }
-                resendAfter={
-                  resendAfter
-                }
-                onResend={
-                  resendOtp
-                }
-                onBack={() =>
-                  setStep(
-                    2
-                  )
-                }
-                onNext={
-                  nextFromOtpStep
-                }
-                devOtpCode={
-                  devOtpCode
-                }
-              />
-            )}
-
-
-            {step ===
-              4 && (
-              <StepThree
-                selected={
-                  selected
-                }
-                form={
-                  form
-                }
-                count={
-                  count
-                }
-                submitting={
-                  submitting
-                }
-                onBack={() =>
-                  setStep(
-                    2
-                  )
-                }
-                onSubmit={
-                  submitReservation
-                }
-              />
-            )}
-
-
-              </motion.div>
-            </AnimatePresence>
+              selected={
+                selected
+              }
+              count={
+                count
+              }
+              setCount={
+                setCount
+              }
+              remaining={
+                remaining
+              }
+              lockedToPreselection={
+                Boolean(
+                  initialId
+                )
+              }
+              onNext={
+                nextFromStepOne
+              }
+            />
 
 
             {error && (
@@ -1491,9 +1233,7 @@ export default function Booking() {
               lg:block
             "
           >
-                        {/* FINAL_NORMAL_SUMMARY_GUARD */}
-            {step !== 4 && (
-<BookingSummary
+            <BookingSummary
               selected={
                 selected
               }
@@ -1503,230 +1243,69 @@ export default function Booking() {
               setCount={
                 setCount
               }
-              editable={
-                step === 1
-              }
+              editable
             />
-            )}
-
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-
-function Stepper({
-  current,
-}) {
-  const items = [
-    {
-      id: 1,
-      title:
-        "انتخاب اجرا",
-    },
-    {
-      id: 2,
-      title:
-        "اطلاعات شما",
-    },
-    {
-      id: 3,
-      title:
-        "تأیید موبایل",
-    },
-    {
-      id: 4,
-      title:
-        "تأیید نهایی",
-    },
-  ];
-
-
-  const activeItem =
-    items.find(
-      (item) =>
-        item.id ===
-        current
-    ) ||
-    items[0];
-
-
-  return (
-    <>
-      <div
-        dir="rtl"
-        className="
-          mt-1
-          mb-6
-          flex
-          items-center
-          justify-between
-          gap-4
-          rounded-[16px]
-          border
-          border-[#3f2c28]
-          bg-[#0b0909]
-          px-4
-          py-3
-          sm:hidden
-        "
-      >
-        <div
-          className="
-            flex
-            items-center
-            justify-start
-            gap-3
-          "
-        >
-          <div
-            className="
-              flex h-8 w-8
-              shrink-0
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-[#9d574c]
-              bg-[#642821]
-              text-[13px]
-              font-black
-              text-[#fff1eb]
-            "
-          >
-            {fa(
-              current
-            )}
-          </div>
-
-          <div>
-            <div
-              className="
-                text-[12px]
-                font-bold
-                text-[#8d817a]
-              "
-            >
-              مرحله {fa(
-                current
-              )} از {fa(
-                items.length
-              )}
-            </div>
-
-            <div
-              className="
-                mt-0.5
-                text-[15px]
-                font-black
-                text-[#eee2d9]
-              "
-            >
-              {
-                activeItem.title
-              }
-            </div>
           </div>
         </div>
       </div>
 
 
-      <div
-        dir="rtl"
-        className="
-          mt-1
-          mb-7
-          hidden
-          grid-cols-4
-          gap-4
-          sm:grid
-        "
-      >
-        {items.map(
-          (item) => {
-            const done =
-              item.id <
-              current;
-
-            const active =
-              item.id ===
-              current;
-
-
-            return (
-              <div
-                key={
-                  item.id
-                }
-                className={`
-                  flex
-                  min-h-[52px]
-                  items-center
-                  justify-start
-                  gap-3
-                  border-b
-                  px-2
-                  pb-3
-                  ${
-                    active
-                      ? "border-[#b76456] text-[#eee2d9]"
-                      : done
-                        ? "border-[#684037] text-[#b7aaa2]"
-                        : "border-white/[0.06] text-[#817773]"
-                  }
-                `}
-              >
-                <div
-                  className={`
-                    flex h-8 w-8
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    border
-                    text-[13px]
-                    font-black
-                    ${
-                      active
-                        ? "border-[#a75d51] bg-[#7a3029] text-[#fff4ef]"
-                        : done
-                          ? "border-[#654039] bg-[#291613] text-[#c88275]"
-                          : "border-[#403733] bg-[#0a0908] text-[#817873]"
-                    }
-                  `}
-                >
-                  {done ? (
-                    <Check
-                      size={15}
-                      strokeWidth={2}
-                    />
-                  ) : (
-                    fa(
-                      item.id
-                    )
-                  )}
-                </div>
-
-
-                <div
-                  className="
-                    text-[14px]
-                    font-black
-                    leading-6
-                  "
-                >
-                  {
-                    item.title
-                  }
-                </div>
-              </div>
-            );
+      {otpModalOpen && (
+        <OtpModal
+          phone={
+            phone
           }
-        )}
-      </div>
-    </>
+          setPhone={
+            setPhone
+          }
+          codeSent={
+            Boolean(
+              otpChallengeId
+            ) &&
+            otpPhone ===
+              phone
+          }
+          otpCode={
+            otpCode
+          }
+          setOtpCode={
+            setOtpCode
+          }
+          otpRequesting={
+            otpRequesting
+          }
+          otpVerifying={
+            otpVerifying
+          }
+          submitting={
+            submitting
+          }
+          resendAfter={
+            resendAfter
+          }
+          devOtpCode={
+            devOtpCode
+          }
+          onResend={
+            resendOtp
+          }
+          onSendCode={
+            handleSendCode
+          }
+          onVerifyCode={
+            handleVerifyCode
+          }
+          onChangePhone={
+            changePhoneNumber
+          }
+          onClose={() =>
+            setOtpModalOpen(
+              false
+            )
+          }
+        />
+      )}
+    </main>
   );
 }
 
@@ -1739,6 +1318,7 @@ function StepOne({
   count,
   setCount,
   remaining,
+  lockedToPreselection,
   onNext,
 }) {
   const mobileSummaryRef =
@@ -1839,6 +1419,65 @@ function StepOne({
       );
   }
 
+  if (
+    lockedToPreselection &&
+    (loading ||
+      isShowBookable(
+        selected
+      ))
+  ) {
+    return (
+      <>
+        <SectionTitle
+          icon={
+            Ticket
+          }
+          title="تعداد بلیت"
+          description="شب اجرا از صفحه قبل انتخاب شده است؛ فقط تعداد بلیت را مشخص کنید."
+        />
+
+        {loading ? (
+          <div
+            className="
+              py-16
+              text-center
+              text-[#887d76]
+            "
+          >
+            در حال دریافت اطلاعات اجرا...
+          </div>
+        ) : (
+          <div
+            className="
+              mt-6
+            "
+          >
+            <BookingSummary
+              selected={
+                selected
+              }
+              count={
+                count
+              }
+              setCount={
+                setCount
+              }
+              editable
+            />
+          </div>
+        )}
+
+        <PrimaryButton
+          onClick={
+            onNext
+          }
+        >
+          ادامه و تأیید شماره موبایل
+        </PrimaryButton>
+      </>
+    );
+  }
+
   return (
     <>
       <SectionTitle
@@ -1848,6 +1487,24 @@ function StepOne({
         title="انتخاب شب اجرا"
         description="شب موردنظر را انتخاب کنید."
       />
+
+      {lockedToPreselection && (
+        <div
+          className="
+            mt-4
+            rounded-[14px]
+            border
+            border-[#6b5730]
+            bg-[#201907]
+            px-4 py-3
+            text-[13px]
+            font-bold
+            text-[#d4b75b]
+          "
+        >
+          اجرای انتخاب‌شده دیگر قابل رزرو نیست؛ شب دیگری را انتخاب کنید.
+        </div>
+      )}
 
 
       {loading ? (
@@ -2087,167 +1744,22 @@ function StepOne({
           onNext
         }
       >
-        ادامه به اطلاعات رزروکننده
+        ادامه و تأیید شماره موبایل
       </PrimaryButton>
     </>
   );
 }
-
-
-function StepTwo({
-  form,
-  setForm,
-  onBack,
-  onNext,
-  requesting,
-}) {
-  function update(
-    key,
-    value
-  ) {
-    setForm(
-      (
-        current
-      ) => ({
-        ...current,
-        [key]:
-          value,
-      })
-    );
-  }
-
-
-  return (
-    <>
-      <SectionTitle
-        icon={
-          UserRound
-        }
-        title="اطلاعات رزروکننده"
-        description="شماره موبایل برای ثبت و پیگیری رزرو الزامی است؛ نام و کد ملی فعلاً اختیاری هستند."
-      />
-
-
-      <div
-        className="
-          mt-6
-          grid
-          gap-5
-        "
-      >
-        <Field
-          icon={
-            UserRound
-          }
-          label="نام و نام خانوادگی (اختیاری)"
-          value={
-            form.name
-          }
-          onChange={(
-            event
-          ) =>
-            update(
-              "name",
-              event
-                .target
-                .value
-            )
-          }
-          placeholder="نام و نام خانوادگی"
-        />
-
-
-        <Field
-          icon={
-            Phone
-          }
-          label="شماره موبایل"
-          value={
-            form.phone
-          }
-          onChange={(
-            event
-          ) =>
-            update(
-              "phone",
-              event
-                .target
-                .value
-            )
-          }
-          placeholder="۰۹۱۲۱۲۳۴۵۶۷"
-          inputMode="numeric"
-        />
-
-
-        <Field
-          icon={
-            BadgeCheck
-          }
-          label="کد ملی (اختیاری)"
-          value={
-            form.nationalId
-          }
-          onChange={(
-            event
-          ) =>
-            update(
-              "nationalId",
-              event
-                .target
-                .value
-            )
-          }
-          placeholder="۱۰ رقم"
-          inputMode="numeric"
-        />
-      </div>
-
-
-      <div
-        className="
-          mt-7
-          flex
-          gap-3
-        "
-      >
-        <SecondaryButton
-          onClick={
-            onBack
-          }
-        >
-          مرحله قبل
-        </SecondaryButton>
-
-        <PrimaryButton
-          onClick={
-            onNext
-          }
-          disabled={
-            requesting
-          }
-          compact
-        >
-          {requesting
-            ? "در حال ارسال کد..."
-            : "ادامه به تأیید موبایل"}
-        </PrimaryButton>
-      </div>
-    </>
-  );
-}
-
-
 function OtpStep({
   phone,
   otpCode,
   setOtpCode,
   otpRequesting,
   otpVerifying,
+  submitting,
   resendAfter,
   onResend,
-  onBack,
-  onNext,
+  onChangePhone,
+  onVerify,
   devOtpCode,
 }) {
   return (
@@ -2434,1155 +1946,248 @@ function OtpStep({
       >
         <SecondaryButton
           onClick={
-            onBack
+            onChangePhone
           }
           disabled={
-            otpVerifying
+            otpVerifying ||
+            submitting
           }
         >
-          ویرایش اطلاعات
+          تغییر شماره موبایل
         </SecondaryButton>
 
         <PrimaryButton
           onClick={
-            onNext
+            onVerify
           }
           disabled={
             otpVerifying ||
-            otpRequesting
+            otpRequesting ||
+            submitting
           }
           compact
         >
           {otpVerifying
             ? "در حال تأیید..."
-            : "تأیید کد و ادامه"}
+            : submitting
+              ? "در حال ثبت رزرو..."
+              : "تأیید و ثبت رزرو"}
         </PrimaryButton>
       </div>
     </>
   );
 }
 
-function StepThree({
-  selected,
-  form,
-  count,
-  submitting,
-  onBack,
+
+function PhoneEntryStep({
+  phone,
+  setPhone,
+  otpRequesting,
   onSubmit,
 }) {
   return (
-    <div
-      dir="rtl"
-      className="
-        booking-final-review
-        w-full
-        text-right
-      "
-    >
-      <div
-        className="
-          booking-final-review__layout
-          grid
-          grid-cols-1
-          gap-8
-          lg:grid-cols-[330px_minmax(0,1fr)]
-          lg:items-stretch
-        "
-        style={{
-          direction:
-            "ltr",
-        }}
-      >
-        <FinalTicketStub
-          selected={
-            selected
-          }
-          count={
-            count
-          }
-        />
-
-
-        <div
-          dir="rtl"
-          className="
-            booking-final-review__details
-            min-w-0
-            text-right
-          "
-        >
-          <div
-            className="
-              booking-final-review__heading
-              flex
-              items-start
-              justify-start
-              gap-4
-              text-right
-            "
-          >
-            <FinalApprovalSealVector
-              size={64}
-              className="
-                booking-final-review__seal
-                shrink-0
-                text-[#c87867]
-              "
-            />
-
-
-            <div
-              className="
-                min-w-0
-                text-right
-              "
-            >
-              <h2
-                className="
-                  booking-final-review__title
-                  font-black
-                  text-[#f1e6de]
-                "
-              >
-                تأیید نهایی
-              </h2>
-
-              <p
-                className="
-                  booking-final-review__subtitle
-                  mt-1.5
-                  font-bold
-                  text-[#8f837c]
-                "
-              >
-                قبل از ثبت نهایی، اطلاعات رزرو را بررسی کنید.
-              </p>
-            </div>
-          </div>
-
-
-          <div
-            className="
-              booking-final-review__header-divider
-              mt-5
-              border-t
-              border-dashed
-              border-[#543831]
-            "
-          />
-
-
-          <FinalReviewSection
-            title="اطلاعات اجرا"
-            icon={
-              Ticket
-            }
-          >
-            <FinalReviewRow
-              icon={
-                ShowMetaVector
-              }
-              label="نمایش"
-              value="«بیرق ماندگار»"
-            />
-
-            <FinalReviewRow
-              icon={
-                NightMetaVector
-              }
-              label="شب"
-              value={
-                selected
-                  ?.label ||
-                "—"
-              }
-            />
-
-            <FinalReviewRow
-              icon={
-                DateMetaVector
-              }
-              label="تاریخ"
-              value={fa(
-                selected
-                  ?.date
-              )}
-            />
-
-            <FinalReviewRow
-              icon={
-                TimeMetaVector
-              }
-              label="ساعت"
-              value={fa(
-                selected
-                  ?.time
-              )}
-            />
-          </FinalReviewSection>
-
-
-          <FinalReviewSection
-            title="اطلاعات خریدار"
-            icon={
-              UserRound
-            }
-            separated
-          >
-            <FinalReviewRow
-              icon={
-                NameMetaVector
-              }
-              label="نام"
-              value={
-                form.name ||
-                "—"
-              }
-            />
-
-            <FinalReviewRow
-              icon={
-                Phone
-              }
-              label="موبایل"
-              value={fa(
-                form.phone
-              )}
-            />
-
-            <FinalReviewRow
-              icon={
-                IdCardMetaVector
-              }
-              label="کد ملی"
-              value={
-                form.nationalId
-                  ? "ثبت شده"
-                  : "ثبت نشده"
-              }
-            />
-          </FinalReviewSection>
-
-
-          <div
-            className="
-              booking-final-review__actions
-              mt-7
-            "
-          >
-            <button
-              type="button"
-              onClick={
-                onBack
-              }
-              disabled={
-                submitting
-              }
-              className="
-                booking-final-review__edit
-                inline-flex
-                min-h-[58px]
-                items-center
-                justify-center
-                gap-3
-                rounded-full
-                border
-                border-[#8e5a4c]
-                bg-[#0b0909]
-                px-6
-                text-[16px]
-                font-black
-                text-[#d79a87]
-                transition
-                hover:border-[#b56c5b]
-                hover:bg-[#130d0c]
-                disabled:cursor-not-allowed
-                disabled:opacity-55
-              "
-            >
-              <Pencil
-                size={19}
-                strokeWidth={1.75}
-              />
-
-              <span>
-                ویرایش
-              </span>
-            </button>
-
-
-            <button
-              type="button"
-              onClick={
-                onSubmit
-              }
-              disabled={
-                submitting
-              }
-              className="
-                booking-final-review__submit
-                inline-flex
-                min-h-[58px]
-                items-center
-                justify-center
-                gap-3
-                rounded-full
-                border
-                border-[#bd6759]
-                px-7
-                text-[16px]
-                font-black
-                text-[#fff2ec]
-                shadow-[0_14px_36px_rgba(90,27,22,0.28)]
-                transition
-                disabled:cursor-not-allowed
-                disabled:opacity-55
-              "
-            >
-              <span>
-                {submitting
-                  ? "در حال ثبت..."
-                  : "ثبت نهایی رزرو"}
-              </span>
-
-              {!submitting && (
-                <ArrowLeft
-                  size={19}
-                  strokeWidth={1.9}
-                />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function FinalApprovalSealVector({
-  size = 64,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      {/* FINAL_APPROVAL_ROSETTE_V5 */}
-      <path
-        d="
-          M32 3.5
-          C35.2 3.5 37.1 7.1 40 8
-          C43 8.9 46.3 6.8 48.7 9.3
-          C51.2 11.7 49.1 15 50 18
-          C50.9 20.9 54.5 22.8 54.5 26
-          C54.5 29.2 50.9 31.1 50 34
-          C49.1 37 51.2 40.3 48.7 42.7
-          C46.3 45.2 43 43.1 40 44
-          C37.1 44.9 35.2 48.5 32 48.5
-          C28.8 48.5 26.9 44.9 24 44
-          C21 43.1 17.7 45.2 15.3 42.7
-          C12.8 40.3 14.9 37 14 34
-          C13.1 31.1 9.5 29.2 9.5 26
-          C9.5 22.8 13.1 20.9 14 18
-          C14.9 15 12.8 11.7 15.3 9.3
-          C17.7 6.8 21 8.9 24 8
-          C26.9 7.1 28.8 3.5 32 3.5
-          Z
-        "
-        transform="translate(0 6)"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinejoin="round"
-      />
-
-      <circle
-        cx="32"
-        cy="32"
-        r="13.2"
-        stroke="currentColor"
-        strokeWidth="1.25"
-      />
-
-      <path
-        d="M25.5 32.2 30 36.6 39.3 26.9"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-
-function FinalTicketStub({
-  selected,
-  count,
-}) {
-  return (
-    <aside
-      dir="rtl"
-      className="
-        booking-final-ticket
-        relative
-        min-h-full
-        text-right
-      "
-    >
-      <TicketOutlineVector />
-
-
-      <div
-        className="
-          booking-final-ticket__content
-          relative
-          z-[2]
-          flex
-          h-full
-          flex-col
-          text-right
-        "
-      >
-        <div
-          className="
-            booking-final-ticket__eyebrow
-            font-black
-            text-[#c46f60]
-          "
-        >
-          نمایش «بیرق ماندگار»
-        </div>
-
-
-        <div
-          className="
-            booking-final-ticket__night
-            font-black
-            text-[#f1e6de]
-          "
-        >
-          {
-            selected
-              ?.label ||
-            "—"
-          }
-        </div>
-
-
-        <div
-          className="
-            booking-final-ticket__divider
-            h-px
-            bg-[#4f352f]
-          "
-        />
-
-
-        <div
-          className="
-            booking-final-ticket__meta-list
-          "
-        >
-          <FinalTicketMeta
-            icon={
-              CalendarDays
-            }
-            label="تاریخ"
-            value={fa(
-              selected
-                ?.date
-            )}
-          />
-
-          <FinalTicketMeta
-            icon={
-              Clock3
-            }
-            label="ساعت"
-            value={fa(
-              selected
-                ?.time
-            )}
-          />
-        </div>
-
-
-        <div
-          className="
-            booking-final-ticket__count
-            relative
-            overflow-hidden
-            border
-            border-[#b66757]
-            text-right
-          "
-        >
-          <SeatWatermarkVector />
-
-
-          <div
-            className="
-              booking-final-ticket__count-label
-              relative
-              z-[2]
-              font-black
-              text-[#d88973]
-            "
-          >
-            تعداد بلیت رزروشده
-          </div>
-
-
-          <div
-            className="
-              booking-final-ticket__count-value
-              relative
-              z-[2]
-              flex
-              items-end
-              justify-start
-              gap-3
-            "
-          >
-            <strong
-              className="
-                booking-final-ticket__count-number
-                font-black
-                leading-none
-                text-[#efaa8c]
-              "
-            >
-              {fa(
-                count
-              )}
-            </strong>
-
-            <span
-              className="
-                booking-final-ticket__count-unit
-                font-black
-                text-[#dc9279]
-              "
-            >
-              بلیت
-            </span>
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-
-function TicketOutlineVector() {
-  return (
-    <svg
-      className="
-        booking-final-ticket__outline
-        absolute
-        inset-0
-        h-full
-        w-full
-      "
-      viewBox="0 0 330 640"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <defs>
-        {/* TICKET_SURFACE_GRADIENT_V5 */}
-        <linearGradient
-          id="ticketSurfaceV5"
-          x1="0"
-          y1="0"
-          x2="1"
-          y2="1"
-        >
-          <stop
-            offset="0%"
-            stopColor="#1b120f"
-          />
-          <stop
-            offset="48%"
-            stopColor="#0c0908"
-          />
-          <stop
-            offset="100%"
-            stopColor="#261713"
-          />
-        </linearGradient>
-
-        <radialGradient
-          id="ticketGlowV5"
-          cx="0"
-          cy="0"
-          r="1"
-          gradientTransform="translate(258 124) rotate(133) scale(260 330)"
-        >
-          <stop
-            offset="0%"
-            stopColor="#8d4d41"
-            stopOpacity=".24"
-          />
-          <stop
-            offset="100%"
-            stopColor="#8d4d41"
-            stopOpacity="0"
-          />
-        </radialGradient>
-      </defs>
-
-
-      {/* SOFT_REFERENCE_TICKET_OUTLINE_V5 */}
-      <path
-        d="
-          M 34 1
-          H 137
-          C 138 15 149 25 165 25
-          C 181 25 192 15 193 1
-          H 296
-
-          C 297 11 304 18 314 19
-          C 320 19.5 325 20 329 22
-
-          V 618
-
-          C 325 620 320 620.5 314 621
-          C 304 622 297 629 296 639
-
-          H 193
-          C 192 629 181 621 165 621
-          C 149 621 138 629 137 639
-          H 34
-
-          C 33 629 26 622 16 621
-          C 10 620.5 5 620 1 618
-
-          V 22
-
-          C 5 20 10 19.5 16 19
-          C 26 18 33 11 34 1
-          Z
-        "
-        fill="url(#ticketSurfaceV5)"
-        stroke="#8a5648"
-        strokeWidth="1.55"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      <path
-        d="
-          M 34 1
-          H 137
-          C 138 15 149 25 165 25
-          C 181 25 192 15 193 1
-          H 296
-
-          C 297 11 304 18 314 19
-          C 320 19.5 325 20 329 22
-
-          V 618
-
-          C 325 620 320 620.5 314 621
-          C 304 622 297 629 296 639
-
-          H 193
-          C 192 629 181 621 165 621
-          C 149 621 138 629 137 639
-          H 34
-
-          C 33 629 26 622 16 621
-          C 10 620.5 5 620 1 618
-
-          V 22
-
-          C 5 20 10 19.5 16 19
-          C 26 18 33 11 34 1
-          Z
-        "
-        fill="url(#ticketGlowV5)"
-        stroke="none"
-      />
-    </svg>
-  );
-}
-
-
-function FinalTicketMeta({
-  icon: Icon,
-  label,
-  value,
-}) {
-  return (
-    <div
-      className="
-        booking-final-ticket__meta
-        text-right
-      "
-    >
-      <div
-        className="
-          booking-final-ticket__meta-label
-          flex
-          items-center
-          justify-start
-          gap-3
-          font-black
-          text-[#c36f5f]
-        "
-      >
-        <Icon
-          size={23}
-          strokeWidth={1.75}
-        />
-
-        <span>
-          {label}
-        </span>
-      </div>
-
-      <div
-        className="
-          booking-final-ticket__meta-value
-          font-black
-          text-[#f0e3db]
-        "
-      >
-        {value || "—"}
-      </div>
-    </div>
-  );
-}
-
-
-function FinalReviewSection({
-  title,
-  icon: Icon,
-  separated = false,
-  children,
-}) {
-  return (
-    <section
-      className={`
-        booking-final-review-section
-        text-right
-        ${
-          separated
-            ? "booking-final-review-section--separated"
-            : ""
+    <>
+      <SectionTitle
+        icon={
+          Phone
         }
-      `}
-    >
+        title="تأیید شماره موبایل"
+        description="برای ثبت نهایی رزرو، شماره موبایل خود را وارد و با کد پیامکی تأیید کنید."
+      />
+
+
       <div
         className="
-          booking-final-review-section__title
-          flex
-          items-center
-          justify-start
-          gap-3
-          text-right
+          mt-6
         "
       >
-        <Icon
-          size={24}
-          strokeWidth={1.75}
-          className="
-            shrink-0
-            text-[#c87966]
-          "
+        <Field
+          icon={
+            Phone
+          }
+          label="شماره موبایل"
+          value={
+            phone
+          }
+          onChange={(
+            event
+          ) =>
+            setPhone(
+              normalizeDigits(
+                event
+                  .target
+                  .value
+              )
+                .replace(
+                  /\D/g,
+                  ""
+                )
+                .slice(
+                  0,
+                  11
+                )
+            )
+          }
+          placeholder="۰۹۱۲۱۲۳۴۵۶۷"
+          inputMode="numeric"
         />
-
-        <h3
-          className="
-            text-[19px]
-            font-black
-            leading-8
-            text-[#e8d9d0]
-          "
-        >
-          {title}
-        </h3>
       </div>
 
 
       <div
         className="
-          booking-final-review-section__rows
-          mt-4
+          mt-7
         "
       >
-        {children}
+        <PrimaryButton
+          onClick={
+            onSubmit
+          }
+          disabled={
+            otpRequesting
+          }
+          compact
+        >
+          {otpRequesting
+            ? "در حال ارسال کد..."
+            : "ارسال کد تأیید"}
+        </PrimaryButton>
       </div>
-    </section>
+    </>
   );
 }
 
 
-function FinalReviewRow({
-  icon: Icon,
-  label,
-  value,
+function OtpModal({
+  phone,
+  setPhone,
+  codeSent,
+  otpCode,
+  setOtpCode,
+  otpRequesting,
+  otpVerifying,
+  submitting,
+  resendAfter,
+  devOtpCode,
+  onResend,
+  onSendCode,
+  onVerifyCode,
+  onChangePhone,
+  onClose,
 }) {
   return (
     <div
       dir="rtl"
       className="
-        booking-final-review-row
-        text-right
+        fixed inset-0 z-50
+        flex items-center justify-center
+        bg-black/70
+        px-4
+        py-8
       "
     >
       <div
         className="
-          booking-final-review-row__label
-          flex
-          shrink-0
-          items-center
-          justify-start
-          gap-3
-          text-right
-          font-bold
-          text-[#988b83]
+          w-full
+          max-w-md
+          rounded-[26px]
+          border
+          border-[#4d3530]
+          bg-[#0b0909]
+          p-6
+          shadow-[0_30px_80px_rgba(0,0,0,.45)]
+          sm:p-7
         "
       >
-        <Icon
-          size={21}
-          strokeWidth={1.7}
+        <div
           className="
-            shrink-0
-            text-[#c36f5f]
+            flex
+            justify-end
           "
-        />
+        >
+          <button
+            type="button"
+            onClick={
+              onClose
+            }
+            disabled={
+              submitting ||
+              otpVerifying
+            }
+            className="
+              rounded-full
+              border
+              border-white/[0.08]
+              px-3
+              py-1.5
+              text-[12px]
+              font-bold
+              text-[#a79a92]
+              transition
+              hover:text-[#dfd1c8]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          >
+            بستن
+          </button>
+        </div>
 
-        <span>
-          {label}
-        </span>
-      </div>
 
-
-      <div
-        className="
-          booking-final-review-row__value
-          min-w-0
-          text-right
-          font-black
-          text-[#eee2d9]
-        "
-      >
-        {value || "—"}
+        {codeSent ? (
+          <OtpStep
+            phone={
+              phone
+            }
+            otpCode={
+              otpCode
+            }
+            setOtpCode={
+              setOtpCode
+            }
+            otpRequesting={
+              otpRequesting
+            }
+            otpVerifying={
+              otpVerifying
+            }
+            submitting={
+              submitting
+            }
+            resendAfter={
+              resendAfter
+            }
+            onResend={
+              onResend
+            }
+            onChangePhone={
+              onChangePhone
+            }
+            onVerify={
+              onVerifyCode
+            }
+            devOtpCode={
+              devOtpCode
+            }
+          />
+        ) : (
+          <PhoneEntryStep
+            phone={
+              phone
+            }
+            setPhone={
+              setPhone
+            }
+            otpRequesting={
+              otpRequesting
+            }
+            onSubmit={
+              onSendCode
+            }
+          />
+        )}
       </div>
     </div>
-  );
-}
-
-
-function ShowMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="15"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M8 3.5v3M16 3.5v3M4 9h16"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <circle
-        cx="9"
-        cy="13"
-        r="1"
-        fill="currentColor"
-      />
-      <circle
-        cx="13"
-        cy="13"
-        r="1"
-        fill="currentColor"
-      />
-      <circle
-        cx="9"
-        cy="17"
-        r="1"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-
-function NightMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="15"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M8 3.5v3M16 3.5v3M4 9h16"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 13h2M14 13h2M8 17h2M14 17h2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-
-function DateMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="8.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M12 7v5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-
-function TimeMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="8.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M12 7.5v4.8l3 1.7"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-
-function NameMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="
-          M5 18
-          C7 15 7.5 10 10 8
-          C11.5 6.8 12.7 7.7 12.2 9.4
-          L10.7 13
-          C10 14.7 11.2 16 12.6 15.2
-          C14.4 14.2 14.8 10.5 17.2 8.8
-          C18.6 7.8 19.6 8.5 19.1 10
-          C18.4 12.2 16.1 14.7 16.8 17
-        "
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4.5 19.5h15"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity=".55"
-      />
-    </svg>
-  );
-}
-
-
-function IdCardMetaVector({
-  size = 21,
-  className = "",
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect
-        x="3"
-        y="5"
-        width="18"
-        height="14"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <circle
-        cx="8"
-        cy="10"
-        r="2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M5.5 15c.7-1.7 1.6-2.5 2.5-2.5s1.8.8 2.5 2.5M14 9h4M14 12h4M14 15h3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-
-function SeatWatermarkVector() {
-  return (
-    <svg
-      className="
-        booking-final-ticket__seat-watermark
-        absolute
-        bottom-2
-        left-1
-      "
-      viewBox="0 0 150 125"
-      fill="none"
-      aria-hidden="true"
-    >
-      {/* REFERENCE_THEATRE_SEATS_V5 */}
-
-      <g
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* decorative diagonal hatch */}
-        <path
-          d="M4 28 55 79M14 16 66 68M26 8 79 61M7 51 48 92"
-          strokeWidth="1.4"
-          opacity=".44"
-        />
-
-        {/* rear seat */}
-        <path
-          d="M72 29c0-8 6-14 14-14h25c8 0 14 6 14 14v21H72V29Z"
-          strokeWidth="4.5"
-          opacity=".54"
-        />
-        <path
-          d="M67 50h63v18H67z"
-          strokeWidth="4.5"
-          opacity=".54"
-        />
-        <path
-          d="M76 68v25M121 68v25"
-          strokeWidth="4.5"
-          opacity=".54"
-        />
-        <path
-          d="m70 38-11-10M127 38l11-10"
-          strokeWidth="4.5"
-          opacity=".54"
-        />
-
-        {/* front seat */}
-        <path
-          d="M26 54c0-10 7-17 17-17h29c10 0 17 7 17 17v26H26V54Z"
-          strokeWidth="5.5"
-        />
-        <path
-          d="M19 80h77v21H19z"
-          strokeWidth="5.5"
-        />
-        <path
-          d="M30 101v20M85 101v20"
-          strokeWidth="5.5"
-        />
-        <path
-          d="m24 64-13-12M91 64l13-12"
-          strokeWidth="5.5"
-        />
-      </g>
-    </svg>
   );
 }
 
@@ -3973,108 +2578,6 @@ function TicketQuantityControl({
         {fa(
           remaining
         )} صندلی باقی‌مانده
-      </div>
-    </div>
-  );
-}
-
-
-function MobileSelectionBar({
-  selected,
-  count,
-  onEdit,
-}) {
-  return (
-    <div
-      className="
-        rounded-[18px]
-        border
-        border-[#4c332e]
-        bg-[#0d0a09]
-        p-4
-      "
-    >
-      <div
-        className="
-          flex
-          items-start
-          justify-between
-          gap-4
-        "
-      >
-        <div
-          className="
-            min-w-0
-          "
-        >
-          <div
-            className="
-              text-[12px]
-              font-black
-              text-[#a45d51]
-            "
-          >
-            انتخاب شما
-          </div>
-
-          <div
-            className="
-              mt-1
-              text-[18px]
-              font-black
-              leading-7
-              text-[#eee2d9]
-            "
-          >
-            {selected.label}
-          </div>
-
-          <div
-            className="
-              mt-2
-              text-[13px]
-              font-bold
-              leading-6
-              text-[#91867f]
-            "
-          >
-            {fa(
-              selected.date
-            )}
-            {" • "}
-            {fa(
-              selected.time
-            )}
-            {" • "}
-            {fa(
-              count
-            )} بلیت
-          </div>
-        </div>
-
-
-        <button
-          type="button"
-          onClick={
-            onEdit
-          }
-          className="
-            shrink-0
-            rounded-full
-            border
-            border-[#593a33]
-            px-3
-            py-2
-            text-[12px]
-            font-black
-            text-[#c57a6c]
-            transition
-            hover:border-[#8b554a]
-            hover:text-[#e19b8d]
-          "
-        >
-          ویرایش
-        </button>
       </div>
     </div>
   );

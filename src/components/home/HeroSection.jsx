@@ -163,7 +163,7 @@ export default function HeroSection() {
           </p>
 
 
-          <div className="home-hero__availability">
+          {/* <div className="home-hero__availability">
             {loading ? (
               <div className="home-hero__availability-loading">
                 در حال بررسی اجراهای قابل رزرو...
@@ -215,12 +215,12 @@ export default function HeroSection() {
               </div>
             )}
           </div>
+ */}
 
-
-          <div className="home-hero__actions">
+          {/* <div className="home-hero__actions">
             {next ? (
               <Link
-                to="/booking"
+                to={`/booking?performanceId=${next.id}`}
                 className="home-button home-button--primary home-hero__booking"
               >
                 <Ticket size={22} />
@@ -230,7 +230,7 @@ export default function HeroSection() {
                 <ArrowLeft size={20} />
               </Link>
             ) : null}
-          </div>
+          </div> */}
 
         </div>
       </div>

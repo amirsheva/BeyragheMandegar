@@ -4,9 +4,9 @@ export default function ReservationSuccessCard({reservation}) {
       <h2 className="text-2xl font-bold text-emerald-400">
         رزرو با موفقیت ثبت شد
       </h2>
-      <p className="mt-3">
+      {/* <p className="mt-3">
         شماره رزرو: {reservation?.id || "-"}
-      </p>
+      </p> */}
     </div>
   );
 }

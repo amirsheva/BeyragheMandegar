@@ -151,7 +151,11 @@ export default function PerformanceCard({
 
 
       <Link
-        to={`/performance/${show.id}`}
+        to={
+          canBook
+            ? `/booking?performanceId=${show.id}`
+            : `/performance/${show.id}`
+        }
         className={
           canBook
             ? "home-performance-card__action is-primary"

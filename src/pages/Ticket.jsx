@@ -253,7 +253,7 @@ function TicketQrList({
         sm:p-6
       "
     >
-      <div
+      {/* <div
         className="
           text-sm
           font-black
@@ -363,7 +363,7 @@ function TicketQrList({
             </article>
           )
         )}
-      </div>
+      </div> */}
     </section>
   );
 }

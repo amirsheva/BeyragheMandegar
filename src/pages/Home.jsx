@@ -13,11 +13,11 @@ export default function Home() {
     <>
       <HeroSection />
       <UpcomingPerformances />
-      <StatsSection />
-      <AboutSection />
-      <NewsSection />
-      <ArchiveSection />
-      <HomeFooterCTA />
+      {/* <StatsSection /> */}
+      {/* <AboutSection /> */}
+      {/* <NewsSection /> */}
+      {/* <ArchiveSection /> */}
+      {/* <HomeFooterCTA /> */}
     </>
   );
 }
