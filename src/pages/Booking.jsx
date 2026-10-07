@@ -99,6 +99,9 @@ function isShowBookable(
 }
 
 
+const MAX_TICKETS_PER_RESERVATION = 5;
+
+
 export default function Booking() {
   const [
     searchParams,
@@ -389,7 +392,10 @@ export default function Booking() {
     if (
       count < 1 ||
       count >
-        remaining
+        Math.min(
+          remaining,
+          MAX_TICKETS_PER_RESERVATION
+        )
     ) {
       setError(
         "تعداد بلیت انتخاب‌شده معتبر نیست."
@@ -1639,9 +1645,7 @@ function StepOne({
                   >
                     {disabled
                       ? "غیرقابل رزرو"
-                      : `${fa(
-                          available
-                        )} صندلی باقی مانده`}
+                      : "قابل رزرو"}
                   </div>
                 </button>
               );
@@ -2259,6 +2263,12 @@ function BookingSummary({
       0
     );
 
+  const maxSelectable =
+    Math.min(
+      remaining,
+      MAX_TICKETS_PER_RESERVATION
+    );
+
 
   return (
     <aside
@@ -2335,8 +2345,8 @@ function BookingSummary({
         setCount={
           setCount
         }
-        remaining={
-          remaining
+        maxSelectable={
+          maxSelectable
         }
         editable={
           editable
@@ -2350,7 +2360,7 @@ function BookingSummary({
 function TicketQuantityControl({
   count,
   setCount,
-  remaining,
+  maxSelectable,
   editable,
 }) {
   return (
@@ -2402,7 +2412,7 @@ function TicketQuantityControl({
             "
           >
             {editable
-              ? "حداکثر بر اساس ظرفیت باقی‌مانده"
+              ? "حداکثر ۵ بلیت در هر رزرو"
               : "تعداد انتخاب‌شده در مرحله اول"}
           </div>
         </div>
@@ -2493,14 +2503,14 @@ function TicketQuantityControl({
             aria-label="افزایش تعداد بلیت"
             disabled={
               count >=
-              remaining
+              maxSelectable
             }
             onClick={() =>
               setCount(
                 Math.min(
                   Math.max(
                     1,
-                    remaining
+                    maxSelectable
                   ),
                   count + 1
                 )
@@ -2561,24 +2571,6 @@ function TicketQuantityControl({
           </span>
         </div>
       )}
-
-
-      <div
-        className="
-          mt-4
-          border-t
-          border-white/[0.06]
-          pt-3
-          text-[13px]
-          font-bold
-          leading-6
-          text-[#71b989]
-        "
-      >
-        {fa(
-          remaining
-        )} صندلی باقی‌مانده
-      </div>
     </div>
   );
 }

@@ -132,7 +132,7 @@ export default function PerformanceCard({
       </div>
 
 
-      <div className="home-performance-card__capacity">
+      {/* <div className="home-performance-card__capacity">
         <UsersRound size={17} />
 
         {soldOut ? (
@@ -147,7 +147,7 @@ export default function PerformanceCard({
             صندلی باقی مانده
           </span>
         )}
-      </div>
+      </div> */}
 
 
       <Link
