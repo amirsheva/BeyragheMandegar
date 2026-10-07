@@ -176,7 +176,7 @@ export function verifyTicketQrPayload(
 export async function ensureCheckinSchema() {
   await sequelize.query(`
     CREATE TABLE IF NOT EXISTS admission_tickets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       reservation_id INTEGER NOT NULL,
       performance_id INTEGER NOT NULL,
       ordinal INTEGER NOT NULL,
@@ -201,7 +201,7 @@ export async function ensureCheckinSchema() {
 
   await sequelize.query(`
     CREATE TABLE IF NOT EXISTS ticket_scan_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       ticket_id INTEGER,
       reservation_id INTEGER,
       performance_id INTEGER,
@@ -247,7 +247,7 @@ async function ensureReservationUnits(
   ) {
     await sequelize.query(
       `
-        INSERT OR IGNORE INTO
+        INSERT INTO
           admission_tickets (
             reservation_id,
             performance_id,
@@ -260,6 +260,7 @@ async function ensureReservationUnits(
           :ordinal,
           :publicId
         )
+        ON CONFLICT (reservation_id, ordinal) DO NOTHING
       `,
       {
         replacements: {

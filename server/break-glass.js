@@ -296,7 +296,7 @@ export function ensureBreakGlassAuditTable() {
     auditInitPromise =
       sequelize.query(`
         CREATE TABLE IF NOT EXISTS pii_access_logs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           actor TEXT NOT NULL,
           action TEXT NOT NULL,

@@ -1,0 +1,2518 @@
+openapi: 3.0.3
+
+info:
+  title: Beyragh Mandegar API
+  version: "2.3.0"
+  description: |
+    REST API for the Beyragh Mandegar theatre ticketing platform: public
+    catalog/booking/ticket-lookup endpoints, a customer "my reservations"
+    portal, a ticket-checker (check-in) surface, and an admin back office.
+    Generated from the actual Express route handlers in
+    back/BeyragheMandegar/server (not hand-written), so field names and
+    status codes should match the running backend exactly.
+
+    ## How the API is used, end to end
+
+    There is no single global auth scheme — each surface below has its own
+    cookie-based session, its own CORS/Origin check, and its own rate
+    limits, and they are not interchangeable (an admin session cookie does
+    not authorize checker or customer routes, and vice versa). Every route
+    under `/api/` also sits behind one shared IP rate limit of 100
+    requests/minute in addition to any route-specific limiter.
+
+    **1. Public booking (no login required for the guest, phone-verified
+    via OTP):**
+      1. `GET /api/shows` (or `/api/performances` / `/api/productions`) to
+         list bookable nights and remaining capacity.
+      2. Optionally `GET /api/performances/{id}/details` for the full
+         venue/production detail page.
+      3. `POST /api/otp/request` with the guest's phone number — returns a
+         `challengeId` and (in dev/noop mode only) a `devCode` to skip real
+         SMS delivery.
+      4. `POST /api/otp/verify` with that `challengeId` + the 6-digit code
+         — returns a short-lived `verificationToken`.
+      5. `POST /api/reservations` with the phone, ticket count, performance
+         id, and that `verificationToken`. This is the only endpoint that
+         actually decrements seat capacity (atomically, oversell-safe) and
+         returns a `trackingCode`.
+      6. Anyone holding the `trackingCode` can later call
+         `GET /api/tickets/{trackingCode}` (reservation status) or
+         `GET /api/ticketing/reservations/{trackingCode}/qr` (QR tickets) —
+         no login needed, the tracking code itself is the credential.
+
+    **2. Customer portal ("my reservations"), only when
+    `CUSTOMER_PORTAL_ENABLED=true`:**
+      1. `POST /api/customer/auth/request` + `POST /api/customer/auth/verify`
+         (same OTP mechanics as booking) — on success this sets the
+         `bm_customer_session` cookie.
+      2. `GET /api/customer/session` to check login state on page load,
+         `GET /api/customer/reservations` to list the signed-in phone
+         number's own bookings, `DELETE /api/customer/session` to sign out.
+
+    **3. Door/ticket-checker app:**
+      1. `POST /api/checker/auth/login` with a username/password issued by
+         an admin — sets the `bm_checker_session` cookie.
+      2. `GET /api/checker/performances` to see which nights this checker
+         may admit for, then `POST /api/checker/scan` (QR payload) or
+         `POST /api/checker/manual-admit` (typed tracking code) per
+         attendee. `GET /api/checker/performances/{id}/status` for a live
+         admitted/remaining count.
+
+    **4. Admin back office**, everything under `Admin - *` tags:
+      1. `POST /api/auth/login` sets the `bm_admin_session` cookie; every
+         other `/api/admin/*` call requires that cookie AND (for
+         non-GET requests) an `Origin` header matching `ADMIN_ORIGIN`.
+      2. Day-to-day content management: create a show (`Admin - Shows`),
+         add performance nights under it (`Admin - Performances`,
+         optionally tied to a venue from `Admin - Venues`), then watch/
+         manage incoming bookings (`Admin - Reservations`) and issue
+         ticket-checker accounts (`Admin - Checkers`) and monitor door
+         scans (`Admin - Checkin`).
+      3. `Admin - SMS` is mostly read-only right now — the actual "send"
+         actions are stubbed (409) pending SMS.ir template approval.
+      4. `Admin - Test OTP` is a dev/staging convenience to read back a
+         guest's OTP code without real SMS, and only works when
+         `OTP_PROVIDER=noop`.
+      5. Sensitive PII (a reservation's real phone/national ID) is never
+         returned by the normal `Admin - Reservations` listing — it's
+         masked. Unmasking requires the separate break-glass flow under
+         `Admin - Auth` (`unlock` → `reveal/{id}` → `lock`), which is
+         fully audit-logged and rate-limited.
+
+servers:
+  - url: http://localhost:4000
+    description: Local dev backend (proxied by the Vite dev servers on
+      5173/5174 under /api)
+
+tags:
+  - name: Public - Catalog
+    description: >-
+      Anonymous, read-only browsing endpoints (shows, performances, news).
+      No auth, no cookies — safe to call from anywhere, used to render the
+      public site and feed the booking flow's "choose a night" step.
+  - name: Public - Booking
+    description: >-
+      The guest reservation flow: request an OTP, verify it, then create
+      the reservation. Call these three in order — `POST /api/reservations`
+      will reject a `verificationToken` that wasn't just issued by
+      `POST /api/otp/verify` for the same phone number (when
+      `OTP_RESERVATION_REQUIRED=true`).
+  - name: Public - Tickets
+    description: >-
+      Look up an existing reservation/ticket by its `trackingCode`. No
+      login required — the tracking code is the bearer credential, so treat
+      it like a secret when displaying/sharing it.
+  - name: Public - Customer Portal
+    description: >-
+      Optional "my reservations" self-service area, gated behind
+      `CUSTOMER_PORTAL_ENABLED`. Uses the same OTP mechanism as booking but
+      issues a longer-lived `bm_customer_session` cookie instead of a
+      one-time verification token.
+  - name: Public - Checker
+    description: >-
+      Door/ticket-checker app surface. Requires a `bm_checker_session`
+      cookie from `POST /api/checker/auth/login` (checker accounts are
+      created by an admin under `Admin - Checkers`). Use `scan` for QR
+      codes and `manual-admit` as the fallback when a QR can't be read.
+  - name: Admin - Auth
+    description: >-
+      Admin sign-in/session management, plus the separate break-glass
+      flow for viewing a reservation's unmasked phone/national ID. Every
+      other `/api/admin/*` route requires the `bm_admin_session` cookie
+      issued here.
+  - name: Admin - Shows
+    description: >-
+      Manage "shows" (productions) — the top-level title under which
+      individual performance nights are scheduled. A show can't be deleted
+      while it still has performances.
+  - name: Admin - Performances
+    description: >-
+      Manage individual performance nights (date/time/capacity/venue) under
+      a show. This is what the public booking flow actually reserves seats
+      against. A performance can't be deleted while it has reservations,
+      and its capacity can't be lowered below the number of seats already
+      reserved.
+  - name: Admin - Venues
+    description: >-
+      Manage reusable venue/hall records (address, maps links) that a
+      performance can optionally reference. A venue can't be deleted while
+      a performance still points to it.
+  - name: Admin - Reservations
+    description: >-
+      View, confirm/cancel, and CSV-export guest reservations. Phone and
+      national ID are always masked here; cancelling releases the seats
+      back to the performance's remaining capacity, confirming a cancelled
+      reservation re-checks there's still room.
+  - name: Admin - News
+    description: >-
+      Manage news/announcement posts shown on the public site. Only items
+      with `status: published` are visible via the public `Public -
+      Catalog` news endpoints.
+  - name: Admin - SMS
+    description: >-
+      Read-only dashboard/log views over SMS delivery. The actual
+      send/retry/sandbox-verify/refresh-delivery actions are currently
+      disabled (stubbed to always return 409) pending SMS.ir template ID
+      approval — don't build a UI that assumes they work yet.
+  - name: Admin - Checkin
+    description: >-
+      Read-only check-in/admission statistics, aggregated from the same
+      scans the `Public - Checker` endpoints record. Useful for a live
+      "how full is the venue right now" dashboard.
+  - name: Admin - Checkers
+    description: >-
+      Create and manage door-checker accounts (username/password,
+      per-performance access) consumed by `Public - Checker` logins.
+  - name: Admin - Test OTP
+    description: >-
+      Dev/staging-only convenience to read back a guest's current OTP code
+      without needing real SMS delivery. Hard-disabled unless
+      `ADMIN_TEST_OTP_ENABLED`, `CUSTOMER_PORTAL_ENABLED`, and
+      `OTP_PROVIDER=noop` are all true — never available against a real SMS
+      provider in production.
+
+security: []
+
+components:
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: bm_admin_session
+      description: Set by POST /api/auth/login. HMAC-signed, 8h TTL.
+    customerSession:
+      type: apiKey
+      in: cookie
+      name: bm_customer_session
+      description: Set by POST /api/customer/auth/verify. Default 7-day TTL.
+    checkerSession:
+      type: apiKey
+      in: cookie
+      name: bm_checker_session
+      description: Set by POST /api/checker/auth/login. 10h TTL.
+    breakGlassGrant:
+      type: apiKey
+      in: header
+      name: x-break-glass-grant
+      description: Short-lived token returned by POST /api/auth/break-glass/unlock.
+
+  parameters:
+    trackingCodeParam:
+      name: trackingCode
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Z0-9-]{6,80}$'
+      description: Reservation tracking code (case-insensitive on input, matched uppercased).
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        retryAfterSeconds:
+          type: integer
+      required: [message]
+
+    Production:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        subtitle: { type: string, nullable: true }
+        short_description: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        director: { type: string, nullable: true }
+        poster: { type: string, nullable: true }
+        status: { type: string, example: published }
+        tags:
+          type: string
+          description: JSON-stringified array of tag strings.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProductionRef:
+      type: object
+      description: Minimal production reference nested in other resources.
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+
+    Performance:
+      type: object
+      properties:
+        id: { type: integer }
+        production_id: { type: integer }
+        venue_id: { type: integer, nullable: true }
+        date: { type: string, example: "1405/08/01" }
+        time: { type: string, example: "20:00" }
+        attendance_time: { type: string, nullable: true }
+        end_time: { type: string, nullable: true }
+        ticket_note: { type: string, nullable: true }
+        capacity: { type: integer }
+        remaining_capacity: { type: integer }
+        status: { type: string, example: active, description: "active | closed | archived (free-form, no enum enforced server-side except archived forces booking_enabled=false)" }
+        booking_enabled: { type: boolean }
+        label: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PerformanceWithProduction:
+      allOf:
+        - $ref: '#/components/schemas/Performance'
+        - type: object
+          properties:
+            production:
+              $ref: '#/components/schemas/ProductionRef'
+
+    Show:
+      type: object
+      description: >
+        Flattened public-facing shape returned by GET /api/shows (used by the
+        booking UI). Field names are camelCase here, unlike the raw
+        Performance model.
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        date: { type: string }
+        time: { type: string }
+        attendanceTime: { type: string, nullable: true }
+        capacity: { type: integer, description: "remaining_capacity (legacy naming)" }
+        totalCapacity: { type: integer, description: "capacity" }
+        remainingCapacity: { type: integer }
+        status: { type: string }
+        bookingEnabled: { type: boolean }
+        label: { type: string, nullable: true }
+        productionId: { type: integer }
+
+    Venue:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        hall_name: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        entrance_note: { type: string, nullable: true }
+        access_note: { type: string, nullable: true }
+        latitude: { type: string, nullable: true, description: "DECIMAL(10,7) as string" }
+        longitude: { type: string, nullable: true, description: "DECIMAL(10,7) as string" }
+        google_maps_url: { type: string, nullable: true }
+        neshan_url: { type: string, nullable: true }
+        balad_url: { type: string, nullable: true }
+        waze_url: { type: string, nullable: true }
+        status: { type: string, example: active }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    VenueRef:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        hallName: { type: string, nullable: true }
+
+    AdminReservation:
+      type: object
+      description: >
+        Reservation as returned to admins. phone/national_id are stored
+        encrypted and decrypted at the model layer, then MASKED by
+        serializeReservation() before leaving the server — there is no
+        endpoint that returns the raw plaintext phone/national ID.
+      properties:
+        id: { type: integer }
+        performance_id: { type: integer }
+        name: { type: string }
+        phone:
+          type: string
+          description: 'Masked, e.g. "0912***4567"; "••••" if fewer than 8 digits.'
+        phone_lookup: { type: string, nullable: true, description: "Raw HMAC lookup value (not masked)." }
+        national_id:
+          type: string
+          description: 'Masked, e.g. "12****5678"; "••••" if fewer than 6 digits.'
+        count: { type: integer }
+        tracking_code: { type: string }
+        status: { type: string, enum: [confirmed, cancelled] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        performance:
+          $ref: '#/components/schemas/PerformanceWithProduction'
+
+    News:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        excerpt: { type: string, nullable: true }
+        content: { type: string }
+        cover: { type: string, nullable: true }
+        status: { type: string, enum: [draft, published] }
+        published_at: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    SmsTemplate:
+      type: object
+      properties:
+        id: { type: integer }
+        key: { type: string }
+        title: { type: string }
+        body: { type: string }
+        category: { type: string, example: transactional }
+        status: { type: string, example: active }
+        is_system: { type: boolean }
+        provider_template_id: { type: integer, nullable: true }
+        provider_method: { type: string, nullable: true }
+        provider_parameters_json: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    SmsMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        reservation_id: { type: integer, nullable: true }
+        performance_id: { type: integer, nullable: true }
+        campaign_id: { type: integer, nullable: true }
+        template_id: { type: integer, nullable: true }
+        phone: { type: string }
+        message: { type: string }
+        provider: { type: string, example: noop }
+        provider_message_id: { type: string, nullable: true }
+        send_method: { type: string, example: text }
+        provider_pack_id: { type: string, nullable: true }
+        line_number: { type: string, nullable: true }
+        delivery_state: { type: integer, nullable: true }
+        delivery_checked_at: { type: string, format: date-time, nullable: true }
+        scheduled_at: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [queued, sent, failed] }
+        encoding: { type: string, example: unicode }
+        segment_count: { type: integer }
+        estimated_cost: { type: string, description: "DECIMAL(14,2) as string" }
+        actual_cost: { type: string, description: "DECIMAL(14,2) as string" }
+        attempt_count: { type: integer }
+        last_error: { type: string, nullable: true }
+        idempotency_key: { type: string }
+        metadata_json: { type: string, nullable: true }
+        queued_at: { type: string, format: date-time, nullable: true }
+        sent_at: { type: string, format: date-time, nullable: true }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        failed_at: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CheckerUser:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        displayName: { type: string }
+        active: { type: boolean }
+        allPerformances: { type: boolean }
+        performanceIds:
+          type: array
+          items: { type: integer }
+        lastLoginAt: { type: string, format: date-time, nullable: true }
+        lastScanAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    CheckScanResult:
+      type: object
+      properties:
+        ok: { type: boolean, description: "true only if result === admitted" }
+        result:
+          type: string
+          enum: [admitted, already_used, cancelled, wrong_performance, invalid, not_found]
+        ticket:
+          type: object
+          nullable: true
+          properties:
+            ticketId: { type: integer }
+            ordinal: { type: integer }
+            reservationId: { type: integer }
+            reservationCount: { type: integer }
+            holderName: { type: string }
+            trackingCode: { type: string }
+            status: { type: string }
+            performance:
+              type: object
+              properties:
+                id: { type: integer }
+                date: { type: string }
+                time: { type: string }
+                label: { type: string, nullable: true }
+                productionTitle: { type: string, nullable: true }
+            checkedInAt: { type: string, format: date-time, nullable: true }
+            checkedInBy: { type: string, nullable: true }
+        message: { type: string }
+        stats:
+          type: object
+          properties:
+            total: { type: integer }
+            admitted: { type: integer }
+            remaining: { type: integer }
+
+  responses:
+    BadRequest:
+      description: Validation error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing/invalid/expired session.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Origin not allowed, or not permitted for this resource.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: State conflict (duplicate slug, capacity, already used, etc).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Rate limited.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  # ===========================================================
+  # Public - Catalog
+  # ===========================================================
+  /api/health:
+    get:
+      tags: [Public - Catalog]
+      summary: Health check
+      description: Not subject to the global /api/ rate limiter (registered before it).
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  service: { type: string, example: beyragh-api }
+                  database: { type: string, example: ready }
+        "503":
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  service: { type: string, example: beyragh-api }
+                  database: { type: string, example: unavailable }
+
+  /api/productions:
+    get:
+      tags: [Public - Catalog]
+      summary: List published productions (with their performances)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Production'
+                    - type: object
+                      properties:
+                        performances:
+                          type: array
+                          items: { $ref: '#/components/schemas/Performance' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/performances:
+    get:
+      tags: [Public - Catalog]
+      summary: List all performances (with production reference)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PerformanceWithProduction' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/shows:
+    get:
+      tags: [Public - Catalog]
+      summary: List performances in the flattened "show" shape used by the booking UI
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Show' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/performances/{id}/details:
+    get:
+      tags: [Public - Catalog]
+      summary: Get full details for one performance (production + venue)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  performance:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      productionId: { type: integer }
+                      label: { type: string, nullable: true }
+                      date: { type: string }
+                      time: { type: string }
+                      attendanceTime: { type: string, nullable: true }
+                      endTime: { type: string, nullable: true }
+                      ticketNote: { type: string, nullable: true }
+                      capacity: { type: integer }
+                      remainingCapacity: { type: integer }
+                      status: { type: string }
+                      bookingEnabled: { type: boolean }
+                      production:
+                        type: object
+                        nullable: true
+                        properties:
+                          id: { type: integer }
+                          title: { type: string }
+                          slug: { type: string }
+                          subtitle: { type: string, nullable: true }
+                          poster: { type: string, nullable: true }
+                      venue:
+                        type: object
+                        nullable: true
+                        properties:
+                          id: { type: integer }
+                          name: { type: string }
+                          slug: { type: string }
+                          hallName: { type: string, nullable: true }
+                          address: { type: string, nullable: true }
+                          entranceNote: { type: string, nullable: true }
+                          accessNote: { type: string, nullable: true }
+                          latitude: { type: string, nullable: true }
+                          longitude: { type: string, nullable: true }
+                          googleMapsUrl: { type: string, nullable: true }
+                          neshanUrl: { type: string, nullable: true }
+                          baladUrl: { type: string, nullable: true }
+                          wazeUrl: { type: string, nullable: true }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/news:
+    get:
+      tags: [Public - Catalog]
+      summary: List published news items
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, maximum: 50, default: 50 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/News' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/news/{slug}:
+    get:
+      tags: [Public - Catalog]
+      summary: Get one published news item by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/News' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Public - Booking (OTP + reservation creation)
+  # ===========================================================
+  /api/otp/request:
+    post:
+      tags: [Public - Booking]
+      summary: Request an OTP code to a phone number (reservation flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  description: Normalized to ^09\d{9}$ (accepts Persian/Arabic digits, +98/98 prefixes).
+                  example: "09121234567"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  challengeId: { type: string, format: uuid }
+                  expiresInSeconds: { type: integer, example: 180 }
+                  resendAfterSeconds: { type: integer, example: 60 }
+                  devCode:
+                    type: string
+                    description: Only present when NODE_ENV=development, OTP_PROVIDER=noop, and OTP_DEV_EXPOSE_CODE is not false.
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "502": { $ref: '#/components/responses/ServerError' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/otp/verify:
+    post:
+      tags: [Public - Booking]
+      summary: Verify an OTP code and receive a verification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeId, code]
+              properties:
+                challengeId: { type: string, format: uuid }
+                code: { type: string, pattern: '^\d{6}$' }
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  verificationToken: { type: string }
+                  expiresInSeconds: { type: integer, example: 600 }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "410": { description: Expired, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/reservations:
+    post:
+      tags: [Public - Booking]
+      summary: Create a reservation for a performance
+      description: >
+        Atomically decrements Performance.remaining_capacity inside an
+        IMMEDIATE transaction (oversell-safe). When
+        OTP_RESERVATION_REQUIRED=true, verificationToken/phone must match an
+        OTP grant from POST /api/otp/verify, consumed in the same
+        transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, count, showtime]
+              properties:
+                name:
+                  type: string
+                  description: Optional in practice; not required to be non-empty.
+                phone:
+                  type: string
+                  pattern: '^09\d{9}$'
+                nationalId:
+                  type: string
+                  description: Optional; if present must be a valid 10-digit Iranian national ID (checksum-validated).
+                count:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                showtime:
+                  type: object
+                  required: [showtimeId]
+                  properties:
+                    showtimeId:
+                      type: integer
+                      description: Performance id.
+                verificationToken:
+                  type: string
+                  description: Required only when OTP_RESERVATION_REQUIRED=true.
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  reservationId: { type: integer }
+                  trackingCode: { type: string, example: "BM-MUVLTP25-3AC671E1386947C6" }
+                  remainingCapacity: { type: integer }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401":
+          description: OTP verification required/invalid (when OTP_RESERVATION_REQUIRED=true)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "410": { description: OTP grant expired, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Public - Tickets
+  # ===========================================================
+  /api/tickets/{trackingCode}:
+    get:
+      tags: [Public - Tickets]
+      summary: Look up a reservation/ticket by tracking code
+      parameters:
+        - $ref: '#/components/parameters/trackingCodeParam'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  ticket:
+                    type: object
+                    properties:
+                      trackingCode: { type: string }
+                      status: { type: string }
+                      count: { type: integer }
+                      production:
+                        type: object
+                        nullable: true
+                        properties:
+                          title: { type: string }
+                          slug: { type: string }
+                      performance:
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          label: { type: string, nullable: true }
+                          date: { type: string }
+                          time: { type: string }
+                          attendanceTime: { type: string, nullable: true }
+                          endTime: { type: string, nullable: true }
+                          ticketNote: { type: string, nullable: true }
+                      venue:
+                        type: object
+                        nullable: true
+                        properties:
+                          name: { type: string }
+                          hallName: { type: string, nullable: true }
+                          address: { type: string, nullable: true }
+                          googleMapsUrl: { type: string, nullable: true }
+                          neshanUrl: { type: string, nullable: true }
+                          baladUrl: { type: string, nullable: true }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/ticketing/reservations/{trackingCode}/qr:
+    get:
+      tags: [Public - Tickets]
+      summary: Get QR codes for every ticket in a reservation
+      description: Public endpoint protected only by the unguessable tracking code.
+      parameters:
+        - $ref: '#/components/parameters/trackingCodeParam'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  status: { type: string }
+                  count: { type: integer }
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ordinal: { type: integer }
+                        qrDataUrl: { type: string, description: "data: URL PNG" }
+                        checkedIn: { type: boolean }
+                        checkedInAt: { type: string, format: date-time, nullable: true }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Public - Customer Portal ("My Reservations")
+  # ===========================================================
+  /api/customer/auth/request:
+    post:
+      tags: [Public - Customer Portal]
+      summary: Request an OTP to sign in to the customer portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, pattern: '^09\d{9}$' }
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  challengeId: { type: string, format: uuid }
+                  expiresInSeconds: { type: integer }
+                  resendAfterSeconds: { type: integer }
+                  devCode: { type: string }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/customer/auth/verify:
+    post:
+      tags: [Public - Customer Portal]
+      summary: Verify OTP and start a customer session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, challengeId, code]
+              properties:
+                phone: { type: string }
+                challengeId: { type: string, format: uuid }
+                code: { type: string, pattern: '^\d{6}$' }
+      responses:
+        "200":
+          description: Signed in
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: bm_customer_session cookie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  authenticated: { type: boolean, example: true }
+                  phone: { type: string, description: 'Masked, e.g. "0912***7890".' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "410": { description: Expired, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/customer/session:
+    get:
+      tags: [Public - Customer Portal]
+      summary: Check whether the current customer session is valid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  authenticated: { type: boolean }
+        "503": { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Public - Customer Portal]
+      summary: Sign out of the customer portal
+      security: [{ customerSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  authenticated: { type: boolean, example: false }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "503": { $ref: '#/components/responses/ServerError' }
+
+  /api/customer/reservations:
+    get:
+      tags: [Public - Customer Portal]
+      summary: List the signed-in customer's own reservations
+      security: [{ customerSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  reservations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        count: { type: integer }
+                        trackingCode: { type: string }
+                        status: { type: string }
+                        createdAt: { type: string, format: date-time }
+                        production:
+                          type: object
+                          nullable: true
+                          properties:
+                            id: { type: integer }
+                            title: { type: string }
+                            slug: { type: string }
+                        performance:
+                          type: object
+                          nullable: true
+                          properties:
+                            id: { type: integer }
+                            label: { type: string, nullable: true }
+                            date: { type: string }
+                            time: { type: string }
+                            attendanceTime: { type: string, nullable: true }
+                            endTime: { type: string, nullable: true }
+                        venue:
+                          type: object
+                          nullable: true
+                          properties:
+                            id: { type: integer }
+                            name: { type: string }
+                            hallName: { type: string, nullable: true }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Public - Checker (ticket check-in)
+  # ===========================================================
+  /api/checker/auth/login:
+    post:
+      tags: [Public - Checker]
+      summary: Checker sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Signed in
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: bm_checker_session cookie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+                      displayName: { type: string }
+                      role: { type: string, example: ticket_checker }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/checker/auth/me:
+    get:
+      tags: [Public - Checker]
+      summary: Get the current checker session
+      security: [{ checkerSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+                      displayName: { type: string }
+                      role: { type: string, example: ticket_checker }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/checker/auth/logout:
+    delete:
+      tags: [Public - Checker]
+      summary: Checker sign-out
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+        "403": { $ref: '#/components/responses/Forbidden' }
+
+  /api/checker/performances:
+    get:
+      tags: [Public - Checker]
+      summary: List performances this checker may admit tickets for
+      security: [{ checkerSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  performances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        label: { type: string, nullable: true }
+                        date: { type: string }
+                        time: { type: string }
+                        productionTitle: { type: string, nullable: true }
+                        stats:
+                          type: object
+                          properties:
+                            total: { type: integer }
+                            admitted: { type: integer }
+                            remaining: { type: integer }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/checker/performances/{id}/status:
+    get:
+      tags: [Public - Checker]
+      summary: Get check-in stats + recent scans for one performance
+      security: [{ checkerSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      admitted: { type: integer }
+                      remaining: { type: integer }
+                  recent:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        ticket_id: { type: integer }
+                        reservation_id: { type: integer }
+                        performance_id: { type: integer }
+                        checker_username: { type: string }
+                        result: { type: string }
+                        source: { type: string }
+                        scanned_at: { type: string, format: date-time }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/checker/scan:
+    post:
+      tags: [Public - Checker]
+      summary: Admit a ticket by scanning its QR payload
+      security: [{ checkerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [performanceId, payload]
+              properties:
+                performanceId: { type: integer, minimum: 1 }
+                payload:
+                  type: string
+                  description: 'QR payload string, format "BMT1.<uuid>.<hmac>".'
+      responses:
+        "200":
+          description: Scan processed (check `result`/`ok` for outcome)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckScanResult' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/checker/manual-admit:
+    post:
+      tags: [Public - Checker]
+      summary: Admit a ticket by tracking code (no QR available)
+      security: [{ checkerSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [performanceId, trackingCode]
+              properties:
+                performanceId: { type: integer, minimum: 1 }
+                trackingCode: { type: string, pattern: '^[A-Z0-9-]{6,80}$' }
+      responses:
+        "200":
+          description: Admit processed (check `result`/`ok` for outcome)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckScanResult' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Auth
+  # ===========================================================
+  /api/auth/login:
+    post:
+      tags: [Admin - Auth]
+      summary: Admin sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Signed in
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: bm_admin_session cookie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/auth/me:
+    get:
+      tags: [Admin - Auth]
+      summary: Get the current admin session
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated: { type: boolean, example: true }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/logout:
+    post:
+      tags: [Admin - Auth]
+      summary: Admin sign-out (no auth required)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+
+  /api/auth/break-glass/status:
+    get:
+      tags: [Admin - Auth]
+      summary: Get break-glass PII-access feature status
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  ttlSeconds: { type: integer, example: 300 }
+                  maxReveals: { type: integer, example: 5 }
+                  reasons:
+                    type: array
+                    items: { type: string }
+                    example: [security-incident, identity-verification, legal-request, support-escalation, other]
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/break-glass/unlock:
+    post:
+      tags: [Admin - Auth]
+      summary: Unlock a break-glass grant (separate password required)
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, reasonCode]
+              properties:
+                password: { type: string, description: Separate break-glass password (BREAK_GLASS_PASSWORD_HASH). }
+                reasonCode:
+                  type: string
+                  enum: [security-incident, identity-verification, legal-request, support-escalation, other]
+      responses:
+        "200":
+          description: Grant issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grant: { type: string, description: base64url token }
+                  expiresAt: { type: string, format: date-time }
+                  maxReveals: { type: integer }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "429": { $ref: '#/components/responses/TooManyRequests' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/auth/break-glass/reveal/{id}:
+    post:
+      tags: [Admin - Auth]
+      summary: Reveal a reservation's plaintext phone/national ID (audited)
+      security: [{ adminSession: [], breakGlassGrant: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Reservation id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm:
+                  type: string
+                  enum: [REVEAL]
+      responses:
+        "200":
+          description: Revealed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservationId: { type: integer }
+                  phone: { type: string, description: Decrypted plaintext. }
+                  nationalId: { type: string, description: Decrypted plaintext. }
+                  remainingReveals: { type: integer }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/auth/break-glass/lock:
+    post:
+      tags: [Admin - Auth]
+      summary: Revoke the current break-glass grant
+      security: [{ adminSession: [], breakGlassGrant: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  revoked: { type: boolean }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Shows (Productions)
+  # ===========================================================
+  /api/admin/shows:
+    get:
+      tags: [Admin - Shows]
+      summary: List all shows (productions)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Production'
+                    - type: object
+                      properties:
+                        performances:
+                          type: array
+                          items: { $ref: '#/components/schemas/Performance' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Admin - Shows]
+      summary: Create a show
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, slug]
+              properties:
+                title: { type: string }
+                slug: { type: string, description: Must be unique. }
+                subtitle: { type: string }
+                short_description: { type: string }
+                description: { type: string }
+                director: { type: string }
+                poster: { type: string }
+                status: { type: string, default: published }
+                tags:
+                  description: Array of tag strings, or a comma-separated string.
+                  oneOf:
+                    - type: array
+                      items: { type: string }
+                    - type: string
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Production' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/shows/{id}:
+    patch:
+      tags: [Admin - Shows]
+      summary: Update a show (partial)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: All fields optional; only keys present are updated. No duplicate-slug check on this endpoint.
+              properties:
+                title: { type: string }
+                slug: { type: string }
+                subtitle: { type: string }
+                short_description: { type: string }
+                description: { type: string }
+                director: { type: string }
+                poster: { type: string }
+                status: { type: string }
+                tags:
+                  oneOf:
+                    - type: array
+                      items: { type: string }
+                    - type: string
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Production' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Admin - Shows]
+      summary: Delete a show (fails if it has performances)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Performances
+  # ===========================================================
+  /api/admin/performances:
+    get:
+      tags: [Admin - Performances]
+      summary: List all performances
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PerformanceWithProduction' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Admin - Performances]
+      summary: Create a performance (a "night")
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [production_id, date, time]
+              properties:
+                production_id: { type: integer, minimum: 1 }
+                venue_id: { type: integer, minimum: 1, nullable: true }
+                date: { type: string }
+                time: { type: string }
+                attendance_time: { type: string }
+                end_time: { type: string }
+                ticket_note: { type: string }
+                capacity: { type: integer, minimum: 1, default: 300 }
+                status: { type: string, default: active, description: '"archived" forces booking_enabled=false.' }
+                booking_enabled: { type: boolean, default: true }
+                label: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Performance' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/performances/{id}:
+    patch:
+      tags: [Admin - Performances]
+      summary: Update a performance (partial)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                All fields optional. capacity, if provided, must stay >= the
+                number of already-reserved seats (capacity - remaining_capacity);
+                remaining_capacity is recalculated automatically.
+              properties:
+                capacity: { type: integer, minimum: 1 }
+                production_id: { type: integer }
+                venue_id: { type: integer, nullable: true }
+                date: { type: string, nullable: true }
+                time: { type: string, nullable: true }
+                attendance_time: { type: string, nullable: true }
+                end_time: { type: string, nullable: true }
+                ticket_note: { type: string, nullable: true }
+                status: { type: string, nullable: true, description: '"archived" forces booking_enabled=false.' }
+                label: { type: string, nullable: true }
+                booking_enabled: { type: boolean }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Performance' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Admin - Performances]
+      summary: Delete a performance (fails if it has reservations)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Reservations
+  # ===========================================================
+  /api/admin/reservations:
+    get:
+      tags: [Admin - Reservations]
+      summary: List all reservations (no pagination/filtering; PII masked)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminReservation' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/reservations/export:
+    post:
+      tags: [Admin - Reservations]
+      summary: Export selected reservations as CSV
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  items: { type: integer }
+                  description: Max 5000 after de-duplication/filtering.
+      responses:
+        "200":
+          description: CSV file (UTF-8 BOM, CRLF rows; national ID intentionally excluded)
+          headers:
+            X-Export-Count:
+              schema: { type: integer }
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="beyragh-reservations-2026-10-06.csv"' }
+          content:
+            text/csv:
+              schema: { type: string }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/reservations/{id}/status:
+    patch:
+      tags: [Admin - Reservations]
+      summary: Confirm or cancel a reservation
+      description: >
+        cancelled→confirmed requires enough remaining capacity (409 if not);
+        confirmed→cancelled releases the seats back to the performance.
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, cancelled]
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminReservation' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Venues
+  # ===========================================================
+  /api/admin/venues:
+    get:
+      tags: [Admin - Venues]
+      summary: List all venues
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Venue' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Admin - Venues]
+      summary: Create a venue
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name: { type: string }
+                slug: { type: string, description: Must be unique. }
+                hall_name: { type: string }
+                address: { type: string }
+                entrance_note: { type: string }
+                access_note: { type: string }
+                latitude: { type: number, nullable: true }
+                longitude: { type: number, nullable: true }
+                google_maps_url: { type: string }
+                neshan_url: { type: string }
+                balad_url: { type: string }
+                waze_url: { type: string }
+                status: { type: string, default: active }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Venue' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/venues/{id}:
+    put:
+      tags: [Admin - Venues]
+      summary: Update a venue (partial)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: All fields optional; only keys present are updated.
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                hall_name: { type: string }
+                address: { type: string }
+                entrance_note: { type: string }
+                access_note: { type: string }
+                latitude: { type: number, nullable: true }
+                longitude: { type: number, nullable: true }
+                google_maps_url: { type: string }
+                neshan_url: { type: string }
+                balad_url: { type: string }
+                waze_url: { type: string }
+                status: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Venue' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Admin - Venues]
+      summary: Delete a venue (fails if performances reference it)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - News
+  # ===========================================================
+  /api/admin/news:
+    get:
+      tags: [Admin - News]
+      summary: List all news items (draft + published)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/News' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Admin - News]
+      summary: Create a news item
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, slug, content]
+              properties:
+                title: { type: string }
+                slug: { type: string, description: Must be unique. }
+                content: { type: string }
+                excerpt: { type: string }
+                cover: { type: string }
+                status:
+                  type: string
+                  description: Only the literal value "published" is honored; anything else (including absent) becomes "draft".
+                  enum: [draft, published]
+                published_at:
+                  type: string
+                  format: date-time
+                  description: Defaults to now if status=published and this is omitted; null if draft.
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/News' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/news/{id}:
+    put:
+      tags: [Admin - News]
+      summary: Update a news item (partial)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                slug: { type: string }
+                excerpt: { type: string }
+                content: { type: string }
+                cover: { type: string }
+                status:
+                  type: string
+                  enum: [draft, published]
+                published_at: { type: string, format: date-time, nullable: true }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/News' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Admin - News]
+      summary: Delete a news item
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - SMS
+  # ===========================================================
+  /api/admin/sms/dashboard:
+    get:
+      tags: [Admin - SMS]
+      summary: SMS module overview counts
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates: { type: integer }
+                  campaigns: { type: integer }
+                  messages: { type: integer }
+                  queued: { type: integer }
+                  sent: { type: integer }
+                  failed: { type: integer }
+                  stats:
+                    type: object
+                    description: Duplicate of the counts above, nested.
+                    properties:
+                      templates: { type: integer }
+                      campaigns: { type: integer }
+                      messages: { type: integer }
+                      queued: { type: integer }
+                      sent: { type: integer }
+                      failed: { type: integer }
+                  provider: { type: string, example: noop }
+                  transactionalEnabled: { type: boolean }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/sms/messages:
+    get:
+      tags: [Admin - SMS]
+      summary: List recent SMS messages (hardcoded limit 200)
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SmsMessage' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/sms/templates:
+    get:
+      tags: [Admin - SMS]
+      summary: List SMS templates
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SmsTemplate' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/sms/templates/{id}:
+    put:
+      tags: [Admin - SMS]
+      summary: Update an SMS template
+      description: >
+        Only title, status, provider_template_id, provider_method, and
+        provider_parameters_json are editable here — key/body/category/is_system
+        are ignored even if sent.
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                status: { type: string }
+                provider_template_id: { type: integer }
+                provider_method: { type: string }
+                provider_parameters_json: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SmsTemplate' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/sms/send:
+    post:
+      tags: [Admin - SMS]
+      summary: Send an ad-hoc SMS (currently disabled)
+      description: Stub — always returns 409 until SMS.ir template IDs are confirmed.
+      security: [{ adminSession: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { type: string }
+                message: { type: string }
+      responses:
+        "409": { $ref: '#/components/responses/Conflict' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/sms/messages/{id}/retry:
+    post:
+      tags: [Admin - SMS]
+      summary: Retry a failed SMS (currently disabled)
+      description: Stub — always returns 409.
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "409": { $ref: '#/components/responses/Conflict' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/sms/sandbox/verify:
+    post:
+      tags: [Admin - SMS]
+      summary: SMS.ir sandbox verification (currently disabled)
+      description: Stub — always returns 409.
+      security: [{ adminSession: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { type: string }
+                code: { type: string }
+      responses:
+        "409": { $ref: '#/components/responses/Conflict' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/sms/messages/{id}/refresh-delivery:
+    post:
+      tags: [Admin - SMS]
+      summary: Refresh delivery status for a message (currently disabled)
+      description: Stub — always returns 409.
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "409": { $ref: '#/components/responses/Conflict' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  # ===========================================================
+  # Admin - Checkin
+  # ===========================================================
+  /api/admin/checkin/dashboard:
+    get:
+      tags: [Admin - Checkin]
+      summary: Check-in stats across all performances
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  performances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        label: { type: string, nullable: true }
+                        date: { type: string }
+                        time: { type: string }
+                        status: { type: string }
+                        bookingEnabled: { type: boolean }
+                        productionTitle: { type: string, nullable: true }
+                        stats:
+                          type: object
+                          properties:
+                            total: { type: integer }
+                            admitted: { type: integer }
+                            remaining: { type: integer }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/checkin/performances/{id}:
+    get:
+      tags: [Admin - Checkin]
+      summary: Detailed check-in snapshot for one performance
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  performanceId: { type: integer }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      admitted: { type: integer }
+                      remaining: { type: integer }
+                  recent:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        ticket_id: { type: integer }
+                        reservation_id: { type: integer }
+                        performance_id: { type: integer }
+                        checker_username: { type: string }
+                        result: { type: string }
+                        source: { type: string }
+                        scanned_at: { type: string, format: date-time }
+                  checkerSummary:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        checkerUsername: { type: string }
+                        scans: { type: integer }
+                        admitted: { type: integer }
+                        lastScan: { type: string, format: date-time, nullable: true }
+                  resultSummary:
+                    type: object
+                    additionalProperties: { type: integer }
+                    description: 'e.g. { "admitted": 3, "duplicate": 1 }'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Checkers
+  # ===========================================================
+  /api/admin/checkers:
+    get:
+      tags: [Admin - Checkers]
+      summary: List checker accounts + assignable performances
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/CheckerUser' }
+                  performances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        label: { type: string, nullable: true }
+                        date: { type: string }
+                        time: { type: string }
+                        status: { type: string }
+                        productionTitle: { type: string, nullable: true }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Admin - Checkers]
+      summary: Create a checker account
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, displayName, password]
+              properties:
+                username:
+                  type: string
+                  pattern: '^[a-z0-9._-]{3,40}$'
+                  description: Normalized to lowercase before validation.
+                displayName:
+                  type: string
+                  minLength: 2
+                  maxLength: 80
+                password:
+                  type: string
+                  minLength: 10
+                  maxLength: 200
+                active: { type: boolean, default: true }
+                allPerformances: { type: boolean, default: false }
+                performanceIds:
+                  type: array
+                  items: { type: integer }
+                  description: Used only when allPerformances is false; every id must exist.
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  user: { $ref: '#/components/schemas/CheckerUser' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/checkers/{id}:
+    patch:
+      tags: [Admin - Checkers]
+      summary: Update a checker account (partial)
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string, minLength: 2, maxLength: 80 }
+                active: { type: boolean }
+                allPerformances:
+                  type: boolean
+                  description: If true, all performance assignments are cleared.
+                performanceIds:
+                  type: array
+                  items: { type: integer }
+                  description: Used only when allPerformances resolves to false.
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  user: { $ref: '#/components/schemas/CheckerUser' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  /api/admin/checkers/{id}/reset-password:
+    post:
+      tags: [Admin - Checkers]
+      summary: Reset a checker's password
+      security: [{ adminSession: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 10, maxLength: 200 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Dashboard
+  # ===========================================================
+  /api/admin/dashboard/stats:
+    get:
+      tags: [Admin - Checkin]
+      summary: Top-level dashboard counters
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shows: { type: integer }
+                  productions: { type: integer, description: Same value as shows. }
+                  performances: { type: integer }
+                  reservations: { type: integer }
+                  tickets: { type: integer, description: 'Sum of Reservation.count.' }
+                  totalCapacity: { type: integer }
+                  remainingCapacity: { type: integer }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
+  # ===========================================================
+  # Admin - Test OTP
+  # ===========================================================
+  /api/admin/customer/test-otp/status:
+    get:
+      tags: [Admin - Test OTP]
+      summary: Get test-OTP tool availability/config
+      security: [{ adminSession: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  enabled: { type: boolean }
+                  provider: { type: string }
+                  customerPortalEnabled: { type: boolean }
+                  ttlSeconds: { type: integer, example: 300 }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+
+  /api/admin/customer/test-otp:
+    post:
+      tags: [Admin - Test OTP]
+      summary: Reveal/regenerate the test OTP code for a phone's active challenge
+      description: >
+        Only works when ADMIN_TEST_OTP_ENABLED, CUSTOMER_PORTAL_ENABLED, and
+        OTP_PROVIDER=noop are all true, and an active noop OTP challenge
+        already exists for the phone (requested via the public "My
+        Reservations" flow first).
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  challengeId: { type: integer }
+                  code: { type: string, example: "483920" }
+                  expiresInSeconds: { type: integer }
+                  phoneMasked: { type: string, example: "0912***4567" }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "503": { $ref: '#/components/responses/ServerError' }
+        "500": { $ref: '#/components/responses/ServerError' }

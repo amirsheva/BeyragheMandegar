@@ -205,6 +205,7 @@ router.get("/shows", async (req, res) => {
             "id",
             "date",
             "time",
+            "attendance_time",
             "capacity",
             "remaining_capacity",
             "status",

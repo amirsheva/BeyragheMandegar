@@ -11,7 +11,7 @@ export function ensureAuditTable() {
     initPromise =
       sequelize.query(`
         CREATE TABLE IF NOT EXISTS audit_logs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           actor TEXT,
           method TEXT NOT NULL,

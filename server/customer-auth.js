@@ -575,7 +575,11 @@ function requireCustomerOrigin(
 async function ensureCustomerPortalSchema() {
   const columns =
     await sequelize.query(
-      "PRAGMA table_info(reservations)",
+      `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'reservations'
+      `,
       {
         type:
           QueryTypes.SELECT,
@@ -586,7 +590,8 @@ async function ensureCustomerPortalSchema() {
     columns.some(
       (column) =>
         String(
-          column?.name ||
+          column
+            ?.column_name ||
           ""
         ) ===
         "phone_lookup"

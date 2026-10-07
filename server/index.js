@@ -125,6 +125,8 @@ async function startServer() {
 
   const app = express();
 
+  await sequelize.sync();
+
   await ensureOtpSchema();
 
   await ensureCheckinSchema();
@@ -273,8 +275,6 @@ async function startServer() {
     })
   );
 
-  await sequelize.sync();
-
   await ensureCustomerPortalSchema();
 
 
@@ -410,6 +410,7 @@ async function startServer() {
           title: item.production?.title || "بیرق ماندگار",
           date: item.date,
           time: item.time,
+          attendanceTime: item.attendance_time,
           capacity: item.remaining_capacity,
           totalCapacity: item.capacity,
           remainingCapacity: item.remaining_capacity,
@@ -893,7 +894,7 @@ async function startServer() {
         !/^09\d{9}$/.test(cleanPhone) ||
         !Number.isInteger(ticketCount) ||
         ticketCount < 1 ||
-        ticketCount > 20 ||
+        ticketCount > 5 ||
         !Number.isInteger(performanceId) ||
         performanceId < 1
       ) {

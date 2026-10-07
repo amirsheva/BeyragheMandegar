@@ -151,7 +151,7 @@ function verifyPasswordHash(
 export async function ensureCheckerUserSchema() {
   await sequelize.query(`
     CREATE TABLE IF NOT EXISTS ticket_checker_users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
       display_name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
@@ -277,7 +277,7 @@ export async function migrateEnvCheckerUsers() {
 
     await sequelize.query(
       `
-        INSERT OR IGNORE INTO
+        INSERT INTO
           ticket_checker_users (
             username,
             display_name,
@@ -294,6 +294,7 @@ export async function migrateEnvCheckerUsers() {
           1,
           CURRENT_TIMESTAMP
         )
+        ON CONFLICT (username) DO NOTHING
       `,
       {
         replacements: {

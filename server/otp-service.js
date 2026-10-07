@@ -512,15 +512,15 @@ async function ensureOtpSchema() {
       phone_digest TEXT NOT NULL,
       purpose TEXT NOT NULL,
       code_hash TEXT,
-      expires_at INTEGER NOT NULL,
+      expires_at BIGINT NOT NULL,
       attempts INTEGER NOT NULL DEFAULT 0,
       max_attempts INTEGER NOT NULL DEFAULT 5,
-      verified_at INTEGER,
+      verified_at BIGINT,
       grant_hash TEXT,
-      grant_expires_at INTEGER,
-      used_at INTEGER,
+      grant_expires_at BIGINT,
+      used_at BIGINT,
       provider TEXT NOT NULL,
-      created_at INTEGER NOT NULL
+      created_at BIGINT NOT NULL
     )
   `);
 

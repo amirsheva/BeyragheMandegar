@@ -13,16 +13,26 @@ import {
 
 const sequelize =
   new Sequelize({
-    dialect: "sqlite",
-    storage:
-      process.env.DB_STORAGE ||
-      "./reservations.db",
+    dialect: "postgres",
+    host:
+      process.env.DB_HOST ||
+      "localhost",
+    port:
+      Number(
+        process.env.DB_PORT
+      ) || 5432,
+    database:
+      process.env.DB_NAME ||
+      "beyragh",
+    username:
+      process.env.DB_USER ||
+      "beyragh",
+    password:
+      process.env.DB_PASS ||
+      "beyragh",
     logging: false,
     retry: {
       max: 5,
-    },
-    dialectOptions: {
-      timeout: 10000,
     },
   });
 
