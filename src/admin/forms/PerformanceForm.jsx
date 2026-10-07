@@ -21,7 +21,7 @@ export default function PerformanceForm({onSubmit}){
    {[
     ["venue","سالن"],
     ["date","تاریخ"],
-    ["time","ساعت"],
+    ["time"," ساعت شروع"],
     ["capacity","ظرفیت"],
     ["price","قیمت"]
    ].map(([key,label])=>(

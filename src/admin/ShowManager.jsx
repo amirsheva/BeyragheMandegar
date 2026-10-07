@@ -6,6 +6,7 @@ import {
 
 import {
   CalendarDays,
+  Clock3,
   FileText,
   Image,
   Pencil,
@@ -1263,6 +1264,56 @@ export default function ShowManager() {
                       </strong>
 
                     </div>
+
+
+                    {count > 0 && (
+                      <ul className="show-performance-list">
+                        {[...show.performances]
+                          .sort(
+                            (
+                              a,
+                              b
+                            ) =>
+                              `${a.date || ""} ${a.time || ""}`.localeCompare(
+                                `${b.date || ""} ${b.time || ""}`
+                              )
+                          )
+                          .map(
+                            (
+                              performance
+                            ) => (
+                              <li
+                                key={
+                                  performance.id
+                                }
+                              >
+                                <span className="show-performance-list__date">
+                                  <CalendarDays
+                                    size={14}
+                                  />
+
+                                  {toFaDigits(
+                                    performance.date ||
+                                    "—"
+                                  )}
+                                </span>
+
+                                <span className="show-performance-list__time">
+                                  <Clock3
+                                    size={14}
+                                  />
+
+                                  ساعت حضور{" "}
+                                  {toFaDigits(
+                                    performance.attendance_time ||
+                                    "—"
+                                  )}
+                                </span>
+                              </li>
+                            )
+                          )}
+                      </ul>
+                    )}
 
 
                     <button

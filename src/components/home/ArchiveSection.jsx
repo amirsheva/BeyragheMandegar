@@ -574,7 +574,7 @@ export default function ArchiveSection() {
                           size={15}
                         />
 
-                        ساعت{" "}
+                        ساعت شروع{" "}
                         {toFaDigits(
                           performance.time
                         )}

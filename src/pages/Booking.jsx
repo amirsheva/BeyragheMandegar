@@ -1629,11 +1629,20 @@ function StepOne({
                     </span>
 
                     <span>
-                      ساعت{" "}
+                       ساعت شروع{" "}
                       {fa(
                         show.time
                       )}
                     </span>
+
+                    {show.attendanceTime && (
+                      <span>
+                        ساعت حضور{" "}
+                        {fa(
+                          show.attendanceTime
+                        )}
+                      </span>
+                    )}
                   </div>
 
                   <div
@@ -2330,11 +2339,23 @@ function BookingSummary({
           icon={
             Clock3
           }
-          label="ساعت"
+          label="ساعت شروع"
           value={fa(
             selected.time
           )}
         />
+
+        {selected.attendanceTime && (
+          <SummaryItem
+            icon={
+              Clock3
+            }
+            label="ساعت حضور"
+            value={fa(
+              selected.attendanceTime
+            )}
+          />
+        )}
       </div>
 
 

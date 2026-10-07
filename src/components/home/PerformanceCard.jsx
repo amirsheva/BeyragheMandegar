@@ -123,12 +123,25 @@ export default function PerformanceCard({
           <Clock3 size={17} />
 
           <span>
-            ساعت{" "}
+             ساعت شروع{" "}
             {toFaDigits(
               show?.time || "—"
             )}
           </span>
         </div>
+
+        {show?.attendanceTime && (
+          <div>
+            <Clock3 size={17} />
+
+            <span>
+              ساعت حضور{" "}
+              {toFaDigits(
+                show.attendanceTime
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
 

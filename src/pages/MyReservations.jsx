@@ -455,7 +455,7 @@ function ReservationCard({
             <Clock3
               size={14}
             />
-            ساعت
+          ساعت شروع
           </div>
 
           <div

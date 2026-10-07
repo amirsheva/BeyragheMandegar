@@ -1050,7 +1050,7 @@ export default function ReservationManager() {
                     تاریخ
                   </th>
                   <th>
-                    ساعت
+                    ساعت شروع
                   </th>
                   <th>
                     بلیت
