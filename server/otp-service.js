@@ -20,6 +20,9 @@ import noopProvider
 import smsirProvider
   from "./sms/providers/smsir-provider.js";
 
+import kavenegarProvider
+  from "./sms/providers/kavenegar-provider.js";
+
 
 const PURPOSE_RESERVATION =
   "reservation";
@@ -245,43 +248,61 @@ function assertOtpConfigured() {
 
 
   if (
-    provider !== "smsir"
+    provider !== "smsir" &&
+    provider !== "kavenegar"
   ) {
     throw new Error(
-      "Production OTP_PROVIDER باید smsir باشد."
+      "Production OTP_PROVIDER باید smsir یا kavenegar باشد."
     );
   }
 
 
   if (
+    provider === "smsir"
+  ) {
+    if (
+      !String(
+        process.env.SMSIR_API_KEY ||
+        ""
+      ).trim()
+    ) {
+      throw new Error(
+        "SMSIR_API_KEY برای OTP تنظیم نشده است."
+      );
+    }
+
+
+    const templateId =
+      Number(
+        process.env
+          .OTP_SMSIR_TEMPLATE_ID ||
+        process.env
+          .SMSIR_SANDBOX_VERIFY_TEMPLATE_ID
+      );
+
+
+    if (
+      !Number.isSafeInteger(
+        templateId
+      ) ||
+      templateId <= 0
+    ) {
+      throw new Error(
+        "OTP_SMSIR_TEMPLATE_ID برای Production تنظیم نشده است."
+      );
+    }
+  }
+
+
+  if (
+    provider === "kavenegar" &&
     !String(
-      process.env.SMSIR_API_KEY ||
+      process.env.KAVENEGAR_API_KEY ||
       ""
     ).trim()
   ) {
     throw new Error(
-      "SMSIR_API_KEY برای OTP تنظیم نشده است."
-    );
-  }
-
-
-  const templateId =
-    Number(
-      process.env
-        .OTP_SMSIR_TEMPLATE_ID ||
-      process.env
-        .SMSIR_SANDBOX_VERIFY_TEMPLATE_ID
-    );
-
-
-  if (
-    !Number.isSafeInteger(
-      templateId
-    ) ||
-    templateId <= 0
-  ) {
-    throw new Error(
-      "OTP_SMSIR_TEMPLATE_ID برای Production تنظیم نشده است."
+      "KAVENEGAR_API_KEY برای OTP تنظیم نشده است."
     );
   }
 
@@ -670,6 +691,63 @@ async function deliverOtp({
   }
 
 
+  if (
+    provider === "kavenegar"
+  ) {
+    if (
+      !String(
+        process.env
+          .KAVENEGAR_API_KEY ||
+        ""
+      ).trim()
+    ) {
+      throw new OtpError(
+        "سرویس کاوه‌نگار برای ارسال OTP تنظیم نشده است.",
+        {
+          status: 503,
+          code:
+            "OTP_PROVIDER_CONFIG",
+        }
+      );
+    }
+
+
+    const template =
+      String(
+        process.env
+          .KAVENEGAR_OTP_TEMPLATE ||
+        "Nazar"
+      ).trim() ||
+      "Nazar";
+
+
+    const result =
+      await kavenegarProvider
+        .verifyLookup({
+          receptor:
+            phone,
+
+          template,
+
+          token:
+            code,
+        });
+
+
+    return {
+      provider,
+
+      providerMessageId:
+        result.messageId !=
+          null
+          ? String(
+              result.messageId
+            )
+          : null,
+    };
+  }
+
+
   throw new OtpError(
     "سرویس ارسال OTP پشتیبانی نمی‌شود.",
     {
@@ -987,6 +1065,12 @@ async function requestReservationOtp({
     ) {
       throw error;
     }
+
+
+    console.error(
+      "OTP delivery error:",
+      error
+    );
 
 
     throw new OtpError(

@@ -32,6 +32,10 @@ import {
   notifyReservationStatus,
 } from "./sms/reservation-status-notifier.js";
 
+import {
+  notifyReservationConfirmedViaKavenegar,
+} from "./sms/kavenegar-reservation-notice.js";
+
 import authRouter from "./auth-routes.js";
 import {
   assertAuthConfigured,
@@ -910,6 +914,13 @@ async function startServer() {
         await Performance.findByPk(
           performanceId,
           {
+            include: [
+              {
+                model: Production,
+                as: "production",
+                attributes: ["id", "title"],
+              },
+            ],
             transaction,
           }
         );
@@ -1051,6 +1062,28 @@ async function startServer() {
         .catch((error) => {
           console.error(
             "Reservation transactional SMS error:",
+            error
+          );
+        });
+
+      // KAVENEGAR_RESERVATION_NOTICE_V1
+      Promise.resolve()
+        .then(() =>
+          notifyReservationConfirmedViaKavenegar({
+            phone:
+              cleanPhone,
+
+            productionTitle:
+              performance.production
+                ?.title,
+
+            count:
+              ticketCount,
+          })
+        )
+        .catch((error) => {
+          console.error(
+            "Kavenegar reservation notice error:",
             error
           );
         });
