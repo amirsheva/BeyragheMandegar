@@ -1,12 +1,17 @@
 import "dotenv/config";
 
 import fs from "fs";
-import os from "os";
 import path from "path";
 import {
-  Sequelize,
   QueryTypes,
 } from "sequelize";
+
+import {
+  connect,
+  getDbConfig,
+  quoteIdent,
+  runPgTool,
+} from "./pg-tools.js";
 
 
 const root =
@@ -38,7 +43,7 @@ function getLatestBackup() {
     )
       .filter(
         (name) =>
-          /^reservations-.*\.db$/.test(
+          /^reservations-.*\.dump$/.test(
             name
           )
       )
@@ -71,7 +76,7 @@ function getLatestBackup() {
 async function run() {
   console.log("");
   console.log(
-    "🧪 SQLite Restore Test"
+    "🧪 Postgres Restore Test"
   );
 
   console.log(
@@ -95,64 +100,65 @@ async function run() {
   );
 
 
-  const restorePath =
-    path.join(
-      os.tmpdir(),
-      `beyragh-restore-test-${Date.now()}.db`
-    );
+  const config =
+    getDbConfig();
+
+  const restoreConfig = {
+    ...config,
+    database:
+      `${config.database}_restore_${Date.now()}`,
+  };
 
 
-  fs.copyFileSync(
-    backup.path,
-    restorePath
+  /*
+   * Backup در یک دیتابیس موقت جدا بازیابی می‌شود؛
+   * دیتابیس اصلی دست نمی‌خورد.
+   * کاربر دیتابیس باید دسترسی CREATEDB داشته باشد.
+   */
+  const admin =
+    connect(config);
+
+  await admin.query(
+    `CREATE DATABASE ${quoteIdent(restoreConfig.database)}`
   );
 
 
-  const db =
-    new Sequelize({
-      dialect: "sqlite",
-      storage: restorePath,
-      logging: false,
-    });
-
+  let db = null;
 
   try {
-    await db.authenticate();
-
-
-    const [integrityRows] =
-      await db.query(
-        "PRAGMA integrity_check;"
-      );
-
-
-    const integrity =
-      integrityRows?.[0]
-        ? Object.values(
-            integrityRows[0]
-          )[0]
-        : null;
-
+    await runPgTool(
+      "pg_restore",
+      [
+        "--no-owner",
+        "--no-privileges",
+        "--exit-on-error",
+        "--dbname",
+        restoreConfig.database,
+      ],
+      {
+        config: restoreConfig,
+        input: backup.path,
+      }
+    );
 
     console.log(
-      "Integrity:",
-      integrity
+      "✅ pg_restore completed"
     );
 
 
-    if (integrity !== "ok") {
-      throw new Error(
-        "Restore database integrity failed."
-      );
-    }
+    db =
+      connect(restoreConfig);
+
+    await db.authenticate();
 
 
     const tables =
       await db.query(
         `
-          SELECT name
-          FROM sqlite_master
-          WHERE type = 'table'
+          SELECT table_name AS name
+          FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_type = 'BASE TABLE'
         `,
         {
           type:
@@ -281,17 +287,13 @@ async function run() {
     );
 
   } finally {
-    await db.close();
+    await db?.close();
 
-    if (
-      fs.existsSync(
-        restorePath
-      )
-    ) {
-      fs.unlinkSync(
-        restorePath
-      );
-    }
+    await admin.query(
+      `DROP DATABASE IF EXISTS ${quoteIdent(restoreConfig.database)}`
+    );
+
+    await admin.close();
   }
 }
 

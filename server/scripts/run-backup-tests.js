@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import {
   mkdirSync,
   rmSync,
@@ -8,6 +10,12 @@ import path from "path";
 import {
   spawnSync,
 } from "child_process";
+
+import {
+  connect,
+  getDbConfig,
+  quoteIdent,
+} from "./pg-tools.js";
 
 
 const root =
@@ -20,11 +28,17 @@ const testRoot =
     "backup-test"
   );
 
-const databasePath =
-  path.join(
-    testRoot,
-    "source.db"
-  );
+/*
+ * Pipeline روی یک دیتابیس Postgres جدا
+ * (<DB_NAME>_backup_test) اجرا می‌شود؛
+ * prepare-test-db فقط دیتابیس‌های *_test را
+ * پاک می‌کند.
+ */
+const dbConfig =
+  getDbConfig();
+
+const testDatabase =
+  `${dbConfig.database}_backup_test`;
 
 const backupDir =
   path.join(
@@ -39,8 +53,8 @@ const env = {
   NODE_ENV:
     "test",
 
-  DB_STORAGE:
-    databasePath,
+  DB_NAME:
+    testDatabase,
 
   BACKUP_DIR:
     backupDir,
@@ -89,7 +103,7 @@ function runNode(
 }
 
 
-function main() {
+async function main() {
   console.log("");
   console.log(
     "========================================"
@@ -124,6 +138,18 @@ function main() {
   );
 
 
+  const admin =
+    connect(dbConfig);
+
+  await admin.query(
+    `DROP DATABASE IF EXISTS ${quoteIdent(testDatabase)}`
+  );
+
+  await admin.query(
+    `CREATE DATABASE ${quoteIdent(testDatabase)}`
+  );
+
+
   try {
     runNode(
       "server/scripts/prepare-test-db.js",
@@ -132,7 +158,7 @@ function main() {
 
     runNode(
       "server/scripts/backup-db.js",
-      "Create SQLite backup"
+      "Create Postgres backup"
     );
 
     runNode(
@@ -159,6 +185,12 @@ function main() {
     );
 
   } finally {
+    await admin.query(
+      `DROP DATABASE IF EXISTS ${quoteIdent(testDatabase)}`
+    );
+
+    await admin.close();
+
     rmSync(
       testRoot,
       {
@@ -173,9 +205,7 @@ function main() {
 }
 
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error("");
   console.error(
     "❌ BACKUP / RESTORE TEST FAILED"
@@ -186,4 +216,4 @@ try {
   );
 
   process.exitCode = 1;
-}
+});

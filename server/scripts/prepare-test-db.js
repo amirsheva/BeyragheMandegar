@@ -7,10 +7,14 @@ import {
 
 
 async function run() {
+  /*
+   * sync({ force: true }) همه جدول‌ها را Drop می‌کند؛
+   * فقط روی دیتابیس‌هایی که نامشان به _test ختم می‌شود.
+   */
   if (
-    !process.env.DB_STORAGE ||
-    !process.env.DB_STORAGE.includes(
-      ".test-data"
+    !process.env.DB_NAME ||
+    !process.env.DB_NAME.endsWith(
+      "_test"
     )
   ) {
     throw new Error(
