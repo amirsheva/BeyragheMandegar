@@ -1073,7 +1073,11 @@ async function startServer() {
             phone:
               cleanPhone,
 
-            productionTitle:
+            label:
+              String(
+                performance.label ||
+                ""
+              ).trim() ||
               performance.production
                 ?.title,
 

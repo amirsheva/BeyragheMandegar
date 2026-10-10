@@ -11,7 +11,7 @@ import kavenegarProvider
  */
 async function notifyReservationConfirmedViaKavenegar({
   phone,
-  productionTitle,
+  label,
   count,
 }) {
   const apiKey =
@@ -67,7 +67,7 @@ async function notifyReservationConfirmedViaKavenegar({
 
         token10:
           String(
-            productionTitle ||
+            label ||
             ""
           ),
       });
