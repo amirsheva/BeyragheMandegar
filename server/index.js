@@ -978,6 +978,7 @@ async function startServer() {
         await Reservation.findOne({
           attributes: [
             "id",
+            "tracking_code",
           ],
           where: {
             phone_key:
@@ -989,9 +990,12 @@ async function startServer() {
       if (existingForPhone) {
         await transaction.rollback();
 
-        return res.status(409).json(
-          PHONE_ALREADY_RESERVED
-        );
+        return res.status(409).json({
+          ...PHONE_ALREADY_RESERVED,
+
+          trackingCode:
+            existingForPhone.tracking_code,
+        });
       }
 
       /*
@@ -1179,9 +1183,40 @@ async function startServer() {
           error
         )
       ) {
-        return res.status(409).json(
-          PHONE_ALREADY_RESERVED
-        );
+        /*
+         * `phoneKey`/`cleanPhone` above are scoped
+         * to the try block and not visible here;
+         * recompute from the raw request body.
+         */
+        let winner =
+          null;
+
+        try {
+          winner =
+            await Reservation.findOne({
+              attributes: [
+                "tracking_code",
+              ],
+              where: {
+                phone_key:
+                  reservationPhoneKey(
+                    req.body
+                      ?.phone
+                  ),
+              },
+            });
+        } catch {
+          winner =
+            null;
+        }
+
+        return res.status(409).json({
+          ...PHONE_ALREADY_RESERVED,
+
+          trackingCode:
+            winner?.tracking_code ??
+            null,
+        });
       }
 
       console.error(
