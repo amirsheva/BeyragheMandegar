@@ -47,15 +47,37 @@ async function kavenegarRequest(
     baseUrl,
   } = getConfig();
 
+  const requestConfig = {
+    url:
+      `${baseUrl}/${apiKey}${path}`,
+
+    params:
+      params || {},
+  };
+
+  /*
+   * Full request URL for debugging; the API key
+   * is masked so it never lands in the logs.
+   */
+  console.log(
+    "[kavenegar] GET",
+    axios
+      .getUri(requestConfig)
+      .replace(
+        `/${apiKey}/`,
+        "/***API_KEY***/"
+      )
+  );
+
   let response;
 
   try {
     response =
       await axios.get(
-        `${baseUrl}/${apiKey}${path}`,
+        requestConfig.url,
         {
           params:
-            params || {},
+            requestConfig.params,
 
           timeout:
             REQUEST_TIMEOUT_MS,
