@@ -1,5 +1,11 @@
+import axios from "axios";
+
+
 const DEFAULT_BASE_URL =
   "https://api.kavenegar.com/v1";
+
+const REQUEST_TIMEOUT_MS =
+  15000;
 
 
 function getConfig() {
@@ -41,22 +47,49 @@ async function kavenegarRequest(
     baseUrl,
   } = getConfig();
 
-  const query =
-    new URLSearchParams(
-      params || {}
-    );
+  let response;
 
-  const response =
-    await fetch(
-      `${baseUrl}/${apiKey}${path}?${query.toString()}`
-    );
+  try {
+    response =
+      await axios.get(
+        `${baseUrl}/${apiKey}${path}`,
+        {
+          params:
+            params || {},
+
+          timeout:
+            REQUEST_TIMEOUT_MS,
+
+          /*
+           * Kavenegar reports failures in the JSON
+           * body with non-2xx codes; handle every
+           * status below instead of throwing here.
+           */
+          validateStatus:
+            () => true,
+        }
+      );
+  } catch (cause) {
+    /*
+     * Axios errors carry the request URL, which
+     * contains the API key — never rethrow them.
+     */
+    const error =
+      new Error(
+        `Kavenegar در دسترس نیست: ${cause.code || cause.message}`
+      );
+
+    error.code =
+      cause.code;
+
+    throw error;
+  }
 
   const payload =
-    await response
-      .json()
-      .catch(
-        () => null
-      );
+    response.data &&
+    typeof response.data === "object"
+      ? response.data
+      : null;
 
   if (!payload) {
     throw new Error(
@@ -71,7 +104,8 @@ async function kavenegarRequest(
     );
 
   if (
-    !response.ok ||
+    response.status < 200 ||
+    response.status >= 300 ||
     status !== 200
   ) {
     const error =
