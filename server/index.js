@@ -231,7 +231,7 @@ async function startServer() {
       },
 
       credentials:
-        false,
+        true,
     })
   );
 
