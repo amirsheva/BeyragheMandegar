@@ -5,6 +5,7 @@ import {
 } from "react-router-dom";
 
 import App from "./App";
+import { installApiBase } from "./lib/apiBase";
 
 import "./index.css";
 import "./ui/theme.css";
@@ -71,6 +72,7 @@ function initializePublicTheme() {
 }
 
 
+installApiBase();
 initializePublicTheme();
 
 
