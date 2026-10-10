@@ -370,6 +370,14 @@ const Reservation =
         allowNull: true,
       },
 
+      // RESERVATION_ONE_PER_PHONE_V1: unique via
+      // idx_reservations_phone_key_unique.
+      phone_key: {
+        type:
+          DataTypes.TEXT,
+        allowNull: true,
+      },
+
       national_id: {
         type:
           DataTypes.STRING,

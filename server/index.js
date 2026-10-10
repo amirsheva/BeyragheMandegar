@@ -36,6 +36,13 @@ import {
   notifyReservationConfirmedViaKavenegar,
 } from "./sms/kavenegar-reservation-notice.js";
 
+import {
+  assertReservationPhoneKeyConfigured,
+  ensureReservationPhoneKeySchema,
+  isPhoneKeyConflict,
+  reservationPhoneKey,
+} from "./security/reservation-phone-key.js";
+
 import authRouter from "./auth-routes.js";
 import {
   assertAuthConfigured,
@@ -126,6 +133,7 @@ async function startServer() {
   assertAuthConfigured();
   assertOtpConfigured();
   assertCustomerPortalConfigured();
+  assertReservationPhoneKeyConfigured();
 
   const app = express();
 
@@ -280,6 +288,11 @@ async function startServer() {
   );
 
   await ensureCustomerPortalSchema();
+
+  await ensureReservationPhoneKeySchema({
+    sequelize,
+    Reservation,
+  });
 
 
   // RESERVATION_RATE_LIMIT_V1
@@ -762,6 +775,15 @@ async function startServer() {
   );
 
 
+  const PHONE_ALREADY_RESERVED = {
+    message:
+      "با این شماره موبایل قبلاً رزرو انجام شده است. هر شماره فقط یک بار می‌تواند رزرو کند.",
+
+    code:
+      "RESERVATION_PHONE_ALREADY_USED",
+  };
+
+
   app.post(
     "/api/reservations",
     reservationLimiter,
@@ -946,6 +968,32 @@ async function startServer() {
         });
       }
 
+      // RESERVATION_ONE_PER_PHONE_V1
+      const phoneKey =
+        reservationPhoneKey(
+          cleanPhone
+        );
+
+      const existingForPhone =
+        await Reservation.findOne({
+          attributes: [
+            "id",
+          ],
+          where: {
+            phone_key:
+              phoneKey,
+          },
+          transaction,
+        });
+
+      if (existingForPhone) {
+        await transaction.rollback();
+
+        return res.status(409).json(
+          PHONE_ALREADY_RESERVED
+        );
+      }
+
       /*
        * Atomic capacity update:
        * capacity is reduced only if enough
@@ -1026,6 +1074,9 @@ async function startServer() {
                     cleanPhone
                   )
                 : null,
+
+            phone_key:
+              phoneKey,
 
             national_id: normalizedNationalId,
 
@@ -1116,6 +1167,21 @@ async function startServer() {
 
       if (!transaction.finished) {
         await transaction.rollback();
+      }
+
+      /*
+       * A concurrent request for the same phone
+       * passed the early check; the unique index
+       * stopped the second one.
+       */
+      if (
+        isPhoneKeyConflict(
+          error
+        )
+      ) {
+        return res.status(409).json(
+          PHONE_ALREADY_RESERVED
+        );
       }
 
       console.error(
