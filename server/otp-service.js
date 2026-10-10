@@ -716,9 +716,9 @@ async function deliverOtp({
       String(
         process.env
           .KAVENEGAR_OTP_TEMPLATE ||
-        "Nazar"
+        "Nazard"
       ).trim() ||
-      "Nazar";
+      "Nazard";
 
 
     const result =
