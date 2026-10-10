@@ -472,9 +472,14 @@ export function requireCheckerOrigin(
 
         "http://localhost:5173",
         "http://localhost:4000",
-      ].filter(
-        Boolean
-      )
+      ]
+        .filter(Boolean)
+        .flatMap((value) =>
+          String(value)
+            .split(",")
+            .map((item) => item.trim())
+        )
+        .filter(Boolean)
     );
 
   if (

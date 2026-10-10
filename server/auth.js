@@ -230,13 +230,18 @@ export function requireAdminOrigin(
   const origin =
     req.get("origin");
 
-  const expected =
-    process.env.ADMIN_ORIGIN ||
-    "http://localhost:4000";
+  const allowedOrigins =
+    String(
+      process.env.ADMIN_ORIGIN ||
+      "http://localhost:4000"
+    )
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
 
   if (
     origin &&
-    origin !== expected
+    !allowedOrigins.includes(origin)
   ) {
     return res.status(403).json({
       message:

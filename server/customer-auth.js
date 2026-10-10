@@ -546,16 +546,19 @@ function requireCustomerOrigin(
       "origin"
     );
 
-  const expected =
+  const allowedOrigins =
     String(
       process.env
         .CUSTOMER_ORIGIN ||
       "http://localhost:5173"
-    ).trim();
+    )
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
 
   if (
     origin &&
-    origin !== expected
+    !allowedOrigins.includes(origin)
   ) {
     return res
       .status(403)
