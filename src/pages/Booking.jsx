@@ -25,6 +25,7 @@ import {
   Plus,
   ArrowLeft,
   CircleCheck,
+  Info,
 } from "lucide-react";
 
 
@@ -872,6 +873,33 @@ export default function Booking() {
       if (
         !response.ok
       ) {
+        if (
+          data.code ===
+            "RESERVATION_PHONE_ALREADY_USED" &&
+          data.trackingCode
+        ) {
+          setOtpModalOpen(
+            false
+          );
+
+          setResult({
+            trackingCode:
+              data.trackingCode,
+
+            alreadyReserved:
+              true,
+          });
+
+          window.scrollTo({
+            top: 0,
+            behavior:
+              "smooth",
+          });
+
+          return;
+        }
+
+
         setError(
           data.message ||
             "ثبت رزرو انجام نشد."
@@ -955,26 +983,41 @@ export default function Booking() {
         "
       >
         <div
-          className="
+          className={`
             mx-auto
             max-w-xl
             rounded-[30px]
             border
-            border-[#315a40]
             bg-[#0b100d]
             p-8
             text-center
             shadow-[0_30px_80px_rgba(0,0,0,.45)]
-          "
+            ${
+              result.alreadyReserved
+                ? "border-[#5a4a31]"
+                : "border-[#315a40]"
+            }
+          `}
         >
-          <CircleCheck
-            size={54}
-            strokeWidth={1.5}
-            className="
-              mx-auto
-              text-[#6fb687]
-            "
-          />
+          {result.alreadyReserved ? (
+            <Info
+              size={54}
+              strokeWidth={1.5}
+              className="
+                mx-auto
+                text-[#d4a54e]
+              "
+            />
+          ) : (
+            <CircleCheck
+              size={54}
+              strokeWidth={1.5}
+              className="
+                mx-auto
+                text-[#6fb687]
+              "
+            />
+          )}
 
           <h1
             className="
@@ -984,7 +1027,9 @@ export default function Booking() {
               text-[#eff4f0]
             "
           >
-            رزرو با موفقیت ثبت شد
+            {result.alreadyReserved
+              ? "شما قبلاً رزرو کرده‌اید"
+              : "رزرو با موفقیت ثبت شد"}
           </h1>
 
 
