@@ -1720,6 +1720,59 @@ paths:
         "401": { $ref: '#/components/responses/Unauthorized' }
         "500": { $ref: '#/components/responses/ServerError' }
 
+    post:
+      tags: [Admin - Reservations]
+      summary: Create a reservation on behalf of a phone number (admin override)
+      description: >
+        For phone orders, VIP/press seats, or group bookings larger than the
+        public per-reservation ticket cap. Unlike POST /api/reservations, no
+        OTP is required, `count` has no upper cap (only `remaining_capacity`
+        limits it, via the same atomic conditional update), and the
+        "one reservation per phone" unique constraint is skipped (the row is
+        written with phone_key=null), so it also works for a phone that
+        already has a self-service reservation.
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, count, performanceId]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                  pattern: '^09\d{9}$'
+                nationalId:
+                  type: string
+                  description: Optional; if present must be a valid 10-digit Iranian national ID (checksum-validated).
+                count:
+                  type: integer
+                  minimum: 1
+                  description: No upper cap; still bounded by the performance's remaining_capacity.
+                performanceId:
+                  type: integer
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  reservationId: { type: integer }
+                  trackingCode: { type: string, example: "BM-MUVLTP25-3AC671E1386947C6" }
+                  remainingCapacity: { type: integer }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "404": { $ref: '#/components/responses/NotFound' }
+        "409": { $ref: '#/components/responses/Conflict' }
+        "500": { $ref: '#/components/responses/ServerError' }
+
   /api/admin/reservations/export:
     post:
       tags: [Admin - Reservations]

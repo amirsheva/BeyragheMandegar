@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Op } from "sequelize";
+import { randomBytes } from "crypto";
 import {
   sequelize,
   Production,
@@ -12,6 +13,19 @@ import {
 import {
   buildReservationCsv,
 } from "./reservation-export.js";
+
+import {
+  customerPhoneLookup,
+  isCustomerPortalEnabled,
+} from "./customer-auth.js";
+
+import {
+  notifyReservationStatus,
+} from "./sms/reservation-status-notifier.js";
+
+import {
+  notifyReservationConfirmedViaKavenegar,
+} from "./sms/kavenegar-reservation-notice.js";
 
 import {
   SmsTemplate,
@@ -148,6 +162,42 @@ function serializeReservation(
         data.national_id
       ),
   };
+}
+
+
+function normalizeReservationDigits(value) {
+  return String(value ?? "")
+    .replace(/[۰-۹]/g, (char) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(char)))
+    .replace(/[٠-٩]/g, (char) => String("٠١٢٣٤٥٦٧٨٩".indexOf(char)));
+}
+
+
+function isValidIranianNationalId(value) {
+  if (value.length !== 10) {
+    return false;
+  }
+
+  const allSame = [...value].every((char) => char === value[0]);
+  if (allSame) {
+    return false;
+  }
+
+  let sum = 0;
+  for (let index = 0; index < 9; index += 1) {
+    sum += Number(value[index]) * (10 - index);
+  }
+
+  const remainder = sum % 11;
+  const expectedCheckDigit = remainder < 2 ? remainder : 11 - remainder;
+
+  return Number(value[9]) === expectedCheckDigit;
+}
+
+
+function createAdminTrackingCode() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const random = randomBytes(8).toString("hex").toUpperCase();
+  return `BM-${stamp}-${random}`;
 }
 
 
@@ -819,6 +869,193 @@ router.get("/reservations", async (req, res) => {
     return res.status(500).json({
       message:
         "خطا در دریافت رزروها",
+    });
+  }
+});
+
+
+/*
+ * ADMIN_MANUAL_RESERVATION_V1
+ *
+ * Lets an admin create a reservation directly on behalf of a phone
+ * number — phone orders, VIP/press seats, or group bookings larger
+ * than the public per-reservation ticket cap. Unlike the public
+ * `POST /api/reservations` flow:
+ *   - no OTP is required (the admin session itself is the auth),
+ *   - the 5-ticket public cap does not apply (`count` only needs
+ *     to be a positive integer),
+ *   - the "one reservation per phone" uniqueness rule is skipped
+ *     by leaving `phone_key` null (a standard unique index allows
+ *     multiple NULLs), so this also works for a phone that already
+ *     has a self-service reservation.
+ * It still can't oversell a performance: the same atomic
+ * conditional-update guard as the public flow protects
+ * `remaining_capacity`.
+ */
+router.post("/reservations", async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const {
+      name,
+      phone,
+      nationalId,
+      count,
+      performanceId,
+    } = req.body || {};
+
+    const cleanName = String(name || "").trim();
+
+    const cleanPhone = normalizeReservationDigits(phone).replace(/\D/g, "");
+
+    const ticketCount = Number(count);
+
+    const perfId = Number(performanceId);
+
+    const hasNationalId = String(nationalId ?? "").trim() !== "";
+
+    const normalizedNationalId = normalizeReservationDigits(nationalId)
+      .split("")
+      .filter((char) => char >= "0" && char <= "9")
+      .join("");
+
+    if (
+      !cleanName ||
+      !/^09\d{9}$/.test(cleanPhone) ||
+      !Number.isInteger(ticketCount) ||
+      ticketCount < 1 ||
+      !Number.isInteger(perfId) ||
+      perfId < 1
+    ) {
+      await transaction.rollback();
+
+      return res.status(400).json({
+        message: "اطلاعات رزرو ناقص یا نامعتبر است.",
+      });
+    }
+
+    if (hasNationalId && !isValidIranianNationalId(normalizedNationalId)) {
+      await transaction.rollback();
+
+      return res.status(400).json({
+        message: "کد ملی واردشده معتبر نیست.",
+      });
+    }
+
+    const performance = await Performance.findByPk(perfId, {
+      include: [
+        {
+          model: Production,
+          as: "production",
+          attributes: ["id", "title"],
+        },
+      ],
+      transaction,
+    });
+
+    if (!performance) {
+      await transaction.rollback();
+
+      return res.status(404).json({
+        message: "اجرای انتخاب‌شده یافت نشد.",
+      });
+    }
+
+    const [affectedRows] = await Performance.update(
+      {
+        remaining_capacity: sequelize.literal(
+          `remaining_capacity - ${ticketCount}`
+        ),
+      },
+      {
+        where: {
+          id: perfId,
+          remaining_capacity: { [Op.gte]: ticketCount },
+        },
+        transaction,
+      }
+    );
+
+    if (affectedRows !== 1) {
+      await transaction.rollback();
+
+      const current = await Performance.findByPk(perfId);
+
+      return res.status(409).json({
+        message: "ظرفیت کافی برای تعداد بلیت درخواستی وجود ندارد.",
+        remainingCapacity: current?.remaining_capacity ?? 0,
+      });
+    }
+
+    const reservation = await Reservation.create(
+      {
+        performance_id: perfId,
+        name: cleanName,
+        phone: cleanPhone,
+
+        phone_lookup: isCustomerPortalEnabled()
+          ? customerPhoneLookup(cleanPhone)
+          : null,
+
+        // ADMIN_MANUAL_RESERVATION_V1: left null on purpose, exempting
+        // admin-created rows from the public one-reservation-per-phone
+        // unique index.
+        phone_key: null,
+
+        national_id: normalizedNationalId,
+        count: ticketCount,
+        tracking_code: createAdminTrackingCode(),
+        status: "confirmed",
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+
+    Promise.resolve()
+      .then(() =>
+        notifyReservationStatus({
+          reservationId: reservation.id,
+          event: "confirmed",
+          idempotencyKey: `reservation-status:${reservation.id}:created`,
+        })
+      )
+      .catch((error) => {
+        console.error("Reservation transactional SMS error:", error);
+      });
+
+    Promise.resolve()
+      .then(() =>
+        notifyReservationConfirmedViaKavenegar({
+          phone: cleanPhone,
+          label:
+            String(performance.label || "").trim() ||
+            performance.production?.title,
+          count: ticketCount,
+        })
+      )
+      .catch((error) => {
+        console.error("Kavenegar reservation notice error:", error);
+      });
+
+    const updatedPerformance = await Performance.findByPk(perfId);
+
+    return res.status(201).json({
+      ok: true,
+      reservationId: reservation.id,
+      trackingCode: reservation.tracking_code,
+      remainingCapacity: updatedPerformance?.remaining_capacity,
+    });
+
+  } catch (error) {
+    if (!transaction.finished) {
+      await transaction.rollback();
+    }
+
+    console.error("Admin create reservation error:", error);
+
+    return res.status(500).json({
+      message: "خطا در ثبت رزرو",
     });
   }
 });
