@@ -414,6 +414,11 @@ async function startServer() {
             as: "production",
             attributes: ["id", "title", "slug", "subtitle"],
           },
+          {
+            model: Venue,
+            as: "venue",
+            attributes: ["id", "name", "hall_name", "latitude", "longitude"],
+          },
         ],
         order: [
           ["date", "ASC"],
@@ -435,6 +440,15 @@ async function startServer() {
           bookingEnabled: item.booking_enabled,
           label: item.label,
           productionId: item.production_id,
+          venue: item.venue
+            ? {
+                id: item.venue.id,
+                name: item.venue.name,
+                hallName: item.venue.hall_name,
+                latitude: item.venue.latitude,
+                longitude: item.venue.longitude,
+              }
+            : null,
         }))
       );
     } catch (error) {

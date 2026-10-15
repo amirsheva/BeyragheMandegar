@@ -290,6 +290,15 @@ components:
         bookingEnabled: { type: boolean }
         label: { type: string, nullable: true }
         productionId: { type: integer }
+        venue:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            hallName: { type: string, nullable: true }
+            latitude: { type: string, nullable: true }
+            longitude: { type: string, nullable: true }
 
     Venue:
       type: object
