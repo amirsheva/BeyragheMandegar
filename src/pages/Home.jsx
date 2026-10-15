@@ -1,6 +1,7 @@
 ﻿import HeroSection from "../components/home/HeroSection";
 import StatsSection from "../components/home/StatsSection";
 import UpcomingPerformances from "../components/home/UpcomingPerformances";
+import VenueMapSection from "../components/home/VenueMapSection";
 import AboutSection from "../components/home/AboutSection";
 import NewsSection from "../components/home/NewsSection";
 import ArchiveSection from "../components/home/ArchiveSection";
@@ -13,6 +14,7 @@ export default function Home() {
     <>
       <HeroSection />
       <UpcomingPerformances />
+      <VenueMapSection />
       {/* <StatsSection /> */}
       {/* <AboutSection /> */}
       {/* <NewsSection /> */}
