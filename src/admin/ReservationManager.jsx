@@ -8,7 +8,9 @@ import {
   CalendarDays,
   CheckCircle2,
   Download,
+  Plus,
   RotateCcw,
+  Save,
   Search,
   Ticket,
   Tickets,
@@ -19,7 +21,9 @@ import {
 } from "lucide-react";
 
 import {
+  AdminButton,
   AdminEmptyState,
+  AdminField,
   AdminMetricCard,
   AdminPageHeader,
   AdminStatusBadge,
@@ -184,6 +188,82 @@ export default function ReservationManager() {
     useState("all");
 
 
+  const [
+    manualFormOpen,
+    setManualFormOpen,
+  ] =
+    useState(false);
+
+  const [
+    manualSaving,
+    setManualSaving,
+  ] =
+    useState(false);
+
+  const [
+    manualError,
+    setManualError,
+  ] =
+    useState("");
+
+  const [
+    manualSuccess,
+    setManualSuccess,
+  ] =
+    useState("");
+
+  const [
+    manualForm,
+    setManualForm,
+  ] =
+    useState({
+      performanceId: "",
+      name: "",
+      phone: "",
+      nationalId: "",
+      count: "1",
+    });
+
+  const [
+    performances,
+    setPerformances,
+  ] =
+    useState([]);
+
+
+  function changeManualField(
+    field,
+    value
+  ) {
+    setManualForm(
+      (previous) => ({
+        ...previous,
+        [field]: value,
+      })
+    );
+  }
+
+
+  function openManualForm() {
+    setManualError("");
+    setManualSuccess("");
+    setManualFormOpen(true);
+  }
+
+
+  function closeManualForm() {
+    setManualFormOpen(false);
+    setManualError("");
+    setManualForm({
+      performanceId: "",
+      name: "",
+      phone: "",
+      nationalId: "",
+      count: "1",
+    });
+  }
+
+
   async function load() {
     setLoading(true);
     setError("");
@@ -220,9 +300,37 @@ export default function ReservationManager() {
   }
 
 
+  async function loadPerformances() {
+    try {
+      const data =
+        await readJson(
+          await fetch(
+            "/api/admin/performances",
+            {
+              credentials:
+                "include",
+            }
+          )
+        );
+
+      setPerformances(
+        Array.isArray(
+          data
+        )
+          ? data
+          : []
+      );
+
+    } catch {
+      setPerformances([]);
+    }
+  }
+
+
   useEffect(
     () => {
       load();
+      loadPerformances();
     },
     []
   );
@@ -376,6 +484,53 @@ export default function ReservationManager() {
       },
       [
         items,
+      ]
+    );
+
+
+  const manualPerformanceOptions =
+    useMemo(
+      () =>
+        [
+          ...performances,
+        ]
+          .map(
+            (performance) => ({
+              id:
+                performance.id,
+
+              remainingCapacity:
+                performance.remaining_capacity,
+
+              label:
+                [
+                  performance.label ||
+                    performance
+                      .production
+                      ?.title,
+                  performance.date,
+                  performance.time,
+                ]
+                  .filter(
+                    Boolean
+                  )
+                  .join(
+                    " — "
+                  ),
+            })
+          )
+          .sort(
+            (
+              a,
+              b
+            ) =>
+              sortText(
+                a.label,
+                b.label
+              )
+          ),
+      [
+        performances,
       ]
     );
 
@@ -685,6 +840,84 @@ export default function ReservationManager() {
   }
 
 
+  async function submitManualReservation(
+    event
+  ) {
+    event.preventDefault();
+
+    setManualSaving(true);
+    setManualError("");
+    setManualSuccess("");
+
+    try {
+      const data =
+        await readJson(
+          await fetch(
+            "/api/admin/reservations",
+            {
+              method:
+                "POST",
+
+              credentials:
+                "include",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  performanceId:
+                    Number(
+                      manualForm.performanceId
+                    ),
+
+                  name:
+                    manualForm.name,
+
+                  phone:
+                    manualForm.phone,
+
+                  nationalId:
+                    manualForm.nationalId,
+
+                  count:
+                    Number(
+                      manualForm.count
+                    ),
+                }),
+            }
+          )
+        );
+
+
+      setManualSuccess(
+        `رزرو با کد پیگیری ${toFaDigits(data.trackingCode)} ثبت شد.`
+      );
+
+      setManualForm({
+        performanceId: "",
+        name: "",
+        phone: "",
+        nationalId: "",
+        count: "1",
+      });
+
+      await load();
+      await loadPerformances();
+
+    } catch (err) {
+      setManualError(
+        err.message
+      );
+
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
+
   return (
     <div
       dir="rtl"
@@ -697,6 +930,31 @@ export default function ReservationManager() {
         }
         title="مدیریت رزروها"
         description="جست‌وجو، فیلتر، خروجی و مدیریت رزروهای ثبت‌شده برای اجراهای بیرق ماندگار"
+        actions={
+          manualFormOpen ? (
+            <AdminButton
+              type="button"
+              tone="ghost"
+              icon={X}
+              onClick={
+                closeManualForm
+              }
+            >
+              انصراف
+            </AdminButton>
+          ) : (
+            <AdminButton
+              type="button"
+              tone="primary"
+              icon={Plus}
+              onClick={
+                openManualForm
+              }
+            >
+              ثبت رزرو دستی
+            </AdminButton>
+          )
+        }
       />
 
 
@@ -706,6 +964,228 @@ export default function ReservationManager() {
             error
           )}
         </div>
+      )}
+
+
+      {manualFormOpen && (
+        <form
+          onSubmit={
+            submitManualReservation
+          }
+          className="reservation-manual-form"
+        >
+          <div className="reservation-manual-form__header">
+            <div>
+              <span>
+                بدون محدودیت تعداد بلیت عمومی
+              </span>
+
+              <h3>
+                ثبت رزرو دستی برای یک شماره
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                closeManualForm
+              }
+              className="reservation-manual-form__close"
+              aria-label="بستن فرم"
+            >
+              <X
+                size={20}
+              />
+            </button>
+          </div>
+
+          <p className="reservation-manual-form__hint">
+            این فرم مخصوص رزروهایی است که مدیر به نیابت از مخاطب ثبت می‌کند؛
+            سقف ۵ بلیت فرم عمومی و محدودیت «هر شماره یک رزرو» در اینجا اعمال
+            نمی‌شود، اما ظرفیت باقیمانده اجرا همچنان رعایت می‌شود.
+          </p>
+
+          {manualError && (
+            <div className="reservation-error">
+              {toFaDigits(
+                manualError
+              )}
+            </div>
+          )}
+
+          {manualSuccess && (
+            <div className="reservation-manual-form__success">
+              {manualSuccess}
+            </div>
+          )}
+
+          <div className="reservation-manual-form-grid">
+            <AdminField
+              label="اجرا"
+              className="reservation-manual-form__field--wide"
+            >
+              <select
+                required
+                value={
+                  manualForm.performanceId
+                }
+                onChange={
+                  (event) =>
+                    changeManualField(
+                      "performanceId",
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+                <option value="">
+                  انتخاب اجرا...
+                </option>
+
+                {manualPerformanceOptions.map(
+                  (option) => (
+                    <option
+                      key={
+                        option.id
+                      }
+                      value={
+                        option.id
+                      }
+                    >
+                      {option.label}
+                      {" "}
+                      (ظرفیت باقیمانده: {faNumber(option.remainingCapacity ?? 0)})
+                    </option>
+                  )
+                )}
+              </select>
+            </AdminField>
+
+            <AdminField
+              label="نام مخاطب"
+            >
+              <input
+                required
+                value={
+                  toFaDigits(
+                    manualForm.name
+                  )
+                }
+                onChange={
+                  (event) =>
+                    changeManualField(
+                      "name",
+                      event
+                        .target
+                        .value
+                    )
+                }
+                placeholder="نام و نام خانوادگی"
+              />
+            </AdminField>
+
+            <AdminField
+              label="شماره موبایل"
+            >
+              <input
+                required
+                dir="ltr"
+                value={
+                  toEnDigits(
+                    manualForm.phone
+                  )
+                }
+                onChange={
+                  (event) =>
+                    changeManualField(
+                      "phone",
+                      toEnDigits(
+                        event
+                          .target
+                          .value
+                      )
+                    )
+                }
+                placeholder="09xxxxxxxxx"
+              />
+            </AdminField>
+
+            <AdminField
+              label="کد ملی (اختیاری)"
+            >
+              <input
+                dir="ltr"
+                value={
+                  toEnDigits(
+                    manualForm.nationalId
+                  )
+                }
+                onChange={
+                  (event) =>
+                    changeManualField(
+                      "nationalId",
+                      toEnDigits(
+                        event
+                          .target
+                          .value
+                      )
+                    )
+                }
+                placeholder="در صورت نیاز"
+              />
+            </AdminField>
+
+            <AdminField
+              label="تعداد بلیت"
+              hint="بدون سقف ۵ تایی فرم عمومی؛ فقط محدود به ظرفیت باقیمانده اجرا"
+            >
+              <input
+                required
+                type="number"
+                min="1"
+                dir="ltr"
+                value={
+                  manualForm.count
+                }
+                onChange={
+                  (event) =>
+                    changeManualField(
+                      "count",
+                      event
+                        .target
+                        .value
+                    )
+                }
+              />
+            </AdminField>
+          </div>
+
+          <div className="reservation-manual-form-actions">
+            <AdminButton
+              type="submit"
+              tone="primary"
+              icon={Save}
+              disabled={
+                manualSaving
+              }
+            >
+              {manualSaving
+                ? "در حال ثبت..."
+                : "ثبت رزرو"}
+            </AdminButton>
+
+            <AdminButton
+              type="button"
+              tone="ghost"
+              onClick={
+                closeManualForm
+              }
+            >
+              انصراف
+            </AdminButton>
+          </div>
+        </form>
       )}
 
 

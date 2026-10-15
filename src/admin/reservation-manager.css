@@ -1146,3 +1146,200 @@ strong {
 }
 
 /* ===== RESERVATION OPERATIONS V1 END ===== */
+
+
+/* ===== ADMIN_MANUAL_RESERVATION_V1 ===== */
+
+.reservation-manual-form {
+  margin-bottom:
+    25px;
+
+  padding:
+    24px;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    24px;
+
+  background:
+    var(--admin-surface);
+}
+
+
+.reservation-manual-form__header {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    20px;
+
+  padding-bottom:
+    16px;
+}
+
+
+.reservation-manual-form__header span {
+  color:
+    var(--admin-accent);
+
+  font-size:
+    14px;
+
+  font-weight:
+    800;
+}
+
+
+.reservation-manual-form__header h3 {
+  margin:
+    4px 0 0;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    22px;
+
+  line-height:
+    1.5;
+
+  font-weight:
+    900;
+}
+
+
+.reservation-manual-form__close {
+  width:
+    42px;
+
+  height:
+    42px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border:
+    1px solid
+    var(--admin-border);
+
+  border-radius:
+    14px;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text);
+
+  cursor:
+    pointer;
+}
+
+
+.reservation-manual-form__hint {
+  margin:
+    0 0 20px;
+
+  color:
+    var(--admin-muted);
+
+  font-size:
+    13.5px;
+
+  line-height:
+    1.9;
+}
+
+
+.reservation-manual-form__success {
+  margin-bottom:
+    22px;
+
+  padding:
+    14px 16px;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--admin-success)
+      40%,
+      transparent
+    );
+
+  border-radius:
+    16px;
+
+  background:
+    var(--admin-success-bg);
+
+  color:
+    var(--admin-success);
+
+  font-size:
+    14px;
+
+  font-weight:
+    750;
+}
+
+
+.reservation-manual-form-grid {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    18px;
+}
+
+
+.reservation-manual-form__field--wide {
+  grid-column:
+    1 / -1;
+}
+
+
+.reservation-manual-form-actions {
+  display:
+    flex;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    10px;
+
+  margin-top:
+    23px;
+}
+
+
+@media (max-width: 720px) {
+  .reservation-manual-form-grid {
+    grid-template-columns:
+      1fr;
+  }
+}
+
+/* ===== ADMIN_MANUAL_RESERVATION_V1 END ===== */
