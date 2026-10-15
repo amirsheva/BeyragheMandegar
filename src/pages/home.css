@@ -2048,6 +2048,66 @@ html[data-theme="light"]
     none;
 }
 
+.home-venue-map__navigate {
+  position:
+    absolute;
+
+  top:
+    16px;
+
+  inset-inline-end:
+    16px;
+
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    10px 16px;
+
+  border-radius:
+    999px;
+
+  background:
+    var(--site-accent);
+
+  color:
+    #fff;
+
+  font-size:
+    14px;
+
+  font-weight:
+    800;
+
+  border:
+    1px solid
+    var(--site-accent-strong);
+
+  text-decoration:
+    none;
+
+  z-index:
+    2;
+
+  transition:
+    transform .15s ease,
+    filter .15s ease;
+}
+
+.home-venue-map__navigate:hover {
+  filter:
+    brightness(1.08);
+
+  transform:
+    translateY(-1px);
+}
+
 @media (max-width: 720px) {
   .home-venue-map__frame {
     height:
@@ -2055,5 +2115,10 @@ html[data-theme="light"]
 
     border-radius:
       18px;
+  }
+
+  .home-venue-map__navigate span {
+    display:
+      none;
   }
 }

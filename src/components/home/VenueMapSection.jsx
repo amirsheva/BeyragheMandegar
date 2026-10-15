@@ -16,6 +16,7 @@ import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
 
 import {
   MapPin,
+  Navigation,
 } from "lucide-react";
 
 
@@ -134,6 +135,11 @@ export default function VenueMapSection() {
       longitude
     );
 
+  const directionsUrl =
+    hasCoordinates
+      ? `https://nshn.ir/?destination=${latitude},${longitude}`
+      : null;
+
 
   if (
     !NESHAN_MAP_KEY ||
@@ -228,6 +234,23 @@ export default function VenueMapSection() {
 
             {venue.name}
           </div>
+
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home-venue-map__navigate"
+            aria-label="مسیریابی در نشان"
+            title="مسیریابی در نشان"
+          >
+            <Navigation
+              size={16}
+            />
+
+            <span>
+              مسیریابی در نشان
+            </span>
+          </a>
         </div>
 
       </div>
