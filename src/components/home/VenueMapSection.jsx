@@ -180,7 +180,7 @@ export default function VenueMapSection() {
                 NESHAN_MAP_KEY,
 
               mapType:
-                MapTypes.neshanVectorNight,
+                MapTypes.neshanRasterNight,
 
               center: [
                 longitude,
