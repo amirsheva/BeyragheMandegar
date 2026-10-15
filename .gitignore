@@ -5,6 +5,8 @@ dist-admin/
 reservations.db
 .DS_Store
 .env
+.env.local
+.env.*.local
 backups/
 *.db
 *.sqlite
