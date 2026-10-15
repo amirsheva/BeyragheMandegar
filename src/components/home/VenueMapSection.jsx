@@ -149,6 +149,65 @@ export default function VenueMapSection() {
   }
 
 
+  function handleNavigateClick(
+    event
+  ) {
+    const isIOS =
+      /iPad|iPhone|iPod/.test(
+        navigator.userAgent
+      ) &&
+      !window.MSStream;
+
+    if (!isIOS) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const schemeUrl = `neshan://?destination=${latitude},${longitude}`;
+
+    let fellBack =
+      false;
+
+    const fallbackToWeb =
+      () => {
+        if (fellBack) {
+          return;
+        }
+
+        fellBack = true;
+
+        window.location.href =
+          directionsUrl;
+      };
+
+    const timer =
+      setTimeout(
+        fallbackToWeb,
+        1500
+      );
+
+    document.addEventListener(
+      "visibilitychange",
+      function onVisibilityChange() {
+        if (document.hidden) {
+          clearTimeout(
+            timer
+          );
+        }
+
+        document.removeEventListener(
+          "visibilitychange",
+          onVisibilityChange
+        );
+      }
+    );
+
+    window.location.href =
+      schemeUrl;
+  }
+
+
   return (
     <section
       dir="rtl"
@@ -239,6 +298,9 @@ export default function VenueMapSection() {
             href={directionsUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={
+              handleNavigateClick
+            }
             className="home-venue-map__navigate"
             aria-label="مسیریابی در نشان"
             title="مسیریابی در نشان"
