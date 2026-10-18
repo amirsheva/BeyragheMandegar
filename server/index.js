@@ -417,7 +417,7 @@ async function startServer() {
           {
             model: Venue,
             as: "venue",
-            attributes: ["id", "name", "hall_name", "latitude", "longitude"],
+            attributes: ["id", "name", "hall_name", "address", "latitude", "longitude"],
           },
         ],
         order: [
@@ -445,6 +445,7 @@ async function startServer() {
                 id: item.venue.id,
                 name: item.venue.name,
                 hallName: item.venue.hall_name,
+                address: item.venue.address,
                 latitude: item.venue.latitude,
                 longitude: item.venue.longitude,
               }
