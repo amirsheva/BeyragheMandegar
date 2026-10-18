@@ -231,6 +231,16 @@ export default function VenueMapSection() {
               را روی نقشه ببینید و مسیر خود را
               از قبل برنامه‌ریزی کنید.
             </p>
+
+            {venue.address && (
+              <p className="home-venue-map__address">
+                <MapPin
+                  size={16}
+                />
+
+                {venue.address}
+              </p>
+            )}
           </div>
         </div>
 

@@ -2108,6 +2108,46 @@ html[data-theme="light"]
     translateY(-1px);
 }
 
+.home-venue-map__address {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    8px;
+
+  max-width:
+    700px;
+
+  margin:
+    10px 0 0;
+
+  color:
+    var(--site-text);
+
+  font-size:
+    15.5px;
+
+  font-weight:
+    700;
+
+  line-height:
+    1.9;
+}
+
+.home-venue-map__address svg {
+  flex-shrink:
+    0;
+
+  margin-top:
+    3px;
+
+  color:
+    var(--site-accent);
+}
+
 @media (max-width: 720px) {
   .home-venue-map__frame {
     height:
